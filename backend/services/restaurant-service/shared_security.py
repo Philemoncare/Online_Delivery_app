@@ -1,0 +1,24 @@
+import os
+from jose import JWTError, jwt
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+
+SECRET_KEY = os.getenv("JWT_SECRET", "your-super-secret-key")
+ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+
+def verify_token(token: str = Depends(oauth2_scheme)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = str(payload.get("sub")).strip()
+        role = payload.get("role")
+        if not user_id:
+            raise credentials_exception
+        return {"user_id": user_id, "role": role}
+    except JWTError:
+        raise credentials_exception

@@ -1,0 +1,116 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: fda-db
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: FDelivery
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/shared/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+
+  redis:
+    image: redis:7-alpine
+    container_name: fda-redis
+    restart: always
+    ports:
+      - "6379:6379"
+
+  auth-service:
+    build: ./backend/services/auth-service
+    container_name: fda-auth-service
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    volumes:
+      - ./backend/services/auth-service:/app
+    environment:
+      - DATABASE_URL=postgresql://user:password@db:5432/FDelivery
+      - JWT_SECRET=your-super-secret-key
+      - JWT_ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+    depends_on:
+      - db
+
+  restaurant-service:
+    build: ./backend/services/restaurant-service
+    container_name: fda-restaurant-service
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    volumes:
+      - ./backend/services/restaurant-service:/app
+    environment:
+      - DATABASE_URL=postgresql://user:password@db:5432/FDelivery
+      - JWT_SECRET=your-super-secret-key
+      - JWT_ALGORITHM=HS256
+    depends_on:
+      - db
+
+  order-service:
+    build: ./backend/services/order-service
+    container_name: fda-order-service
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    volumes:
+      - ./backend/services/order-service:/app
+    environment:
+      - DATABASE_URL=postgresql://user:password@db:5432/FDelivery
+      - JWT_SECRET=your-super-secret-key
+      - JWT_ALGORITHM=HS256
+      - CELERY_BROKER_URL=redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+
+  payment-service:
+    build: ./backend/services/payment-service
+    container_name: fda-payment-service
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    volumes:
+      - ./backend/services/payment-service:/app
+    environment:
+      - DATABASE_URL=postgresql://user:password@db:5432/FDelivery
+      - ORDER_SERVICE_URL=http://order-service:8000
+    depends_on:
+      - db
+
+  delivery-service:
+    build: ./backend/services/delivery-service
+    container_name: fda-delivery-service
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    volumes:
+      - ./backend/services/delivery-service:/app
+    environment:
+      - DATABASE_URL=postgresql://user:password@db:5432/FDelivery
+    depends_on:
+      - db
+
+  notification-service:
+    build: ./backend/services/notification-service
+    container_name: fda-notification-service
+    command: celery -A tasks worker --loglevel=info
+    volumes:
+      - ./backend/services/notification-service:/app
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+
+  gateway:
+    image: nginx:alpine
+    container_name: fda-gateway
+    ports:
+      - "80:80"
+    volumes:
+      - ./backend/gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - auth-service
+      - restaurant-service
+      - order-service
+      - payment-service
+      - delivery-service
+
+volumes:
+  postgres_data:
