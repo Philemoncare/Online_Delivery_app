@@ -887,6 +887,8 @@ const ProfileView = ({ user, setView, showNotify, notification }) => {
     const [rating, setRating] = useState(5);
     const [comment, setComment] = useState('');
     const [loading, setLoading] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
 
     // Form states for settings
     const [profileForm, setProfileForm] = useState({
@@ -898,6 +900,22 @@ const ProfileView = ({ user, setView, showNotify, notification }) => {
     const [addresses, setAddresses] = useState(() => {
         try { return JSON.parse(user?.address || '[]'); } catch(e) { return []; }
     });
+
+    const handleImageUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        setUploading(true);
+        try {
+            const res = await authApi.uploadImage(file);
+            await authApi.updateMe({ profile_picture_url: res.data.url });
+            showNotify("Identity image synchronized.");
+            window.location.reload(); // Refresh to update all instances
+        } catch (err) {
+            showNotify("Image sync failed.", "error");
+        } finally {
+            setUploading(false);
+        }
+    };
 
     const loadOrders = async () => {
         if (!user) return;
@@ -973,10 +991,22 @@ const ProfileView = ({ user, setView, showNotify, notification }) => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
                         <div style={{ backgroundColor: '#0A0A0A', padding: '40px', borderRadius: '40px', border: '1px solid #1A1A1A', textAlign: 'center' }}>
                             <div style={{ position: 'relative', width: '120px', height: '120px', margin: '0 auto 25px' }}>
-                                <div style={{ width: '100%', height: '100%', borderRadius: '50%', backgroundColor: theme.primary, color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '48px', fontWeight: '900', border: '4px solid #1A1A1A' }}>{user.full_name[0]}</div>
+                                <div style={{
+                                    width: '100%', height: '100%', borderRadius: '50%',
+                                    backgroundColor: theme.primary, color: '#000',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontSize: '48px', fontWeight: '900', border: '4px solid #1A1A1A',
+                                    backgroundImage: `url(${user.profile_picture_url})`,
+                                    backgroundSize: 'cover',
+                                    backgroundPosition: 'center'
+                                }}>{!user.profile_picture_url && user.full_name[0]}</div>
                                 <div style={{ position: 'absolute', bottom: 5, right: 5, width: '32px', height: '32px', backgroundColor: theme.success, borderRadius: '50%', border: '4px solid #0A0A0A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                     <CheckCircle size={16} color="#FFF"/>
                                 </div>
+                                <input type="file" id="profile-upload" style={{ display: 'none' }} onChange={handleImageUpload} accept="image/*" />
+                                <label htmlFor="profile-upload" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: '0.3s', cursor: 'pointer' }} onMouseOver={e => e.currentTarget.style.opacity = 1} onMouseOut={e => e.currentTarget.style.opacity = 0}>
+                                    <Smartphone size={24} color="#FFF" />
+                                </label>
                             </div>
                             <h3 style={{ color: '#FFF', fontSize: '24px', fontWeight: '900', marginBottom: '5px' }}>{user.full_name}</h3>
                             <p style={{ color: '#666', fontSize: '14px', fontWeight: '600' }}>{user.email}</p>
@@ -1101,7 +1131,7 @@ const ProfileView = ({ user, setView, showNotify, notification }) => {
                                         <Button label="Renew" variant="secondary" size="small" />
                                     </div>
                                 </div>
-                                <Button label="Add New Payment Method" variant="secondary" style={{ borderRadius: '50px' }} icon={<Plus size={18}/>} />
+                                <Button label="Add New Payment Method" variant="secondary" onClick={() => setShowPaymentModal(true)} style={{ borderRadius: '50px' }} icon={<Plus size={18}/>} />
                             </div>
                         ) : activeTab === 'addresses' ? (
                             <div style={{ animation: 'fadeInUp 0.4s' }}>
@@ -1157,6 +1187,43 @@ const ProfileView = ({ user, setView, showNotify, notification }) => {
                         <div style={{ display: 'flex', gap: '20px', marginTop: '20px' }}>
                             <Button label="Cancel" variant="secondary" onClick={() => setReviewing(null)} style={{ flex: 1, borderRadius: '50px' }} />
                             <Button label="Submit Feedback" onClick={submitReview} style={{ flex: 1, borderRadius: '50px' }} />
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+
+            {showPaymentModal && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
+                    <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} style={{ backgroundColor: '#0A0A0A', padding: '60px', borderRadius: '50px', width: '100%', maxWidth: '500px', border: '1px solid #1A1A1A' }}>
+                        <h3 style={{ color: '#FFF', fontSize: '32px', fontWeight: '900', marginBottom: '15px', letterSpacing: '-1px' }}>Add Payment</h3>
+                        <p style={{ color: '#666', marginBottom: '40px' }}>Securely link a new financial coordinate to your WorldPlate profile.</p>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                            <div style={{ display: 'flex', gap: '15px' }}>
+                                <div style={{ flex: 1, padding: '20px', borderRadius: '20px', border: `1px solid ${theme.primary}`, backgroundColor: `${theme.primary}10`, textAlign: 'center', cursor: 'pointer' }}>
+                                    <Smartphone size={32} color={theme.primary} style={{ marginInline: 'auto', marginBottom: '10px' }} />
+                                    <div style={{ color: '#FFF', fontWeight: '800', fontSize: '14px' }}>Mobile Money</div>
+                                </div>
+                                <div style={{ flex: 1, padding: '20px', borderRadius: '20px', border: '1px solid #1A1A1A', backgroundColor: 'rgba(255,255,255,0.02)', textAlign: 'center', cursor: 'pointer', opacity: 0.5 }}>
+                                    <CreditCard size={32} color="#666" style={{ marginInline: 'auto', marginBottom: '10px' }} />
+                                    <div style={{ color: '#666', fontWeight: '800', fontSize: '14px' }}>Debit Card</div>
+                                </div>
+                            </div>
+
+                            <Input label="Wallet Number" placeholder="+233..." icon={<Phone size={18}/>} />
+                            <div style={{ marginBottom: '10px' }}>
+                                <label style={{ display: 'block', fontSize: '11px', fontWeight: '900', color: '#666', marginBottom: '10px', textTransform: 'uppercase' }}>Provider</label>
+                                <select style={{ width: '100%', padding: '15px', borderRadius: '15px', backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid #1A1A1A', color: '#FFF', fontWeight: '700', outline: 'none' }}>
+                                    <option>MTN Mobile Money</option>
+                                    <option>Vodafone Cash</option>
+                                    <option>AirtelTigo Money</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '20px', marginTop: '30px' }}>
+                            <Button label="Discard" variant="secondary" onClick={() => setShowPaymentModal(false)} style={{ flex: 1, borderRadius: '50px' }} />
+                            <Button label="Link Account" onClick={() => { showNotify("Payment coordinate established."); setShowPaymentModal(false); }} style={{ flex: 1, borderRadius: '50px' }} />
                         </div>
                     </motion.div>
                 </div>

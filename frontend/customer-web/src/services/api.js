@@ -23,6 +23,14 @@ export const authApi = {
   login: (fd) => axios.post(`${API_CONFIG.auth}/auth/login`, fd),
   register: (data) => axios.post(`${API_CONFIG.auth}/auth/register`, data),
   getMe: () => api.get(`${API_CONFIG.auth}/auth/me`),
+  updateMe: (data) => api.put(`${API_CONFIG.auth}/auth/me`, data),
+  uploadImage: (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post(`${API_CONFIG.auth}/auth/upload`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
 };
 
 export const restaurantApi = {
