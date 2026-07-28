@@ -105,13 +105,9 @@ const Login = ({ onLogin, onSwitchToRegister }) => {
 const Register = ({ onSwitchToLogin }) => {
     const [step, setStep] = useState(1);
     const [formData, setFormData] = useState({
-        // Step 1: Basic
         full_name: '', email: '', phone: '', password: '', role: 'vendor',
-        // Step 3: Qualification
         qualification: 'I own a restaurant.',
-        // Step 4: Restaurant Details
         res_name: '', cuisine: '', address: '', prep_time: '25',
-        // Step 6: Plan
         plan: 'MONTHLY'
     });
     const [loading, setLoading] = useState(false);
@@ -123,9 +119,7 @@ const Register = ({ onSwitchToLogin }) => {
     const handleRegister = async () => {
         setLoading(true);
         try {
-            // In a unified system, we first create the user
             await authApi.register(formData);
-            // Then proceed to step 2 (Terms)
             nextStep();
         } catch (err) {
             setError(err.response?.data?.detail || "Registration failed.");
@@ -138,10 +132,8 @@ const Register = ({ onSwitchToLogin }) => {
         e.preventDefault();
         setLoading(true);
         try {
-            // Mocking the multi-step finalization
-            // In a real app, each step would hit a specific endpoint
             setTimeout(() => {
-                setStep(7); // Review Step
+                setStep(7);
                 setTimeout(onSwitchToLogin, 3000);
             }, 1500);
         } catch (err) {
@@ -269,15 +261,6 @@ const Register = ({ onSwitchToLogin }) => {
     );
 };
 
-// --- AUTH STYLES ---
-const authContainerStyle = { display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', backgroundColor: theme.secondary, backgroundImage: `radial-gradient(circle at 100% 0%, ${theme.primary}10 0%, transparent 40%), url('https://images.unsplash.com/photo-1556742044-3c52d6e88c02?auto=format&fit=crop&q=90&w=2570')`, backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative', overflow: 'hidden' };
-const authPanelStyle = { display: 'flex', width: '1000px', height: '660px', borderRadius: '40px', overflow: 'hidden', animation: 'slideIn 0.8s cubic-bezier(0.16, 1, 0.3, 1)', zIndex: 10 };
-const authSidebarStyle = { flex: 1, padding: '60px', backgroundImage: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&q=90&w=2570')`, backgroundSize: 'cover', display: 'flex', flexDirection: 'column', justifyContent: 'center', borderRight: '1px solid rgba(255,255,255,0.05)', position: 'relative' };
-const authFormPanelStyle = { width: '450px', padding: '60px', display: 'flex', flexDirection: 'column', justifyContent: 'center' };
-const errorStyle = { padding: '16px', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: theme.danger, borderRadius: '16px', fontSize: '14px', fontWeight: '700', marginBottom: '24px', textAlign: 'center', border: '1px solid rgba(239, 68, 68, 0.1)' };
-const togglePasswordStyle = { position: 'absolute', right: '16px', top: '42px', background: 'none', border: 'none', color: theme.textMuted, cursor: 'pointer', fontSize: '12px', fontWeight: '800' };
-const authStyles = `@keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } } @keyframes scaleUp { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } } .glass-card { background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); } @media (max-width: 1024px) { .glass-card { width: 90% !important; height: auto !important; flex-direction: column !important; } div[style*="flex: 1"] { display: none !important; } div[style*="width: 450px"] { width: 100% !important; padding: 40px !important; } }`;
-
 const ReviewModal = ({ onLogout }) => (
     <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(2, 6, 23, 0.9)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
         <style>{`
@@ -306,6 +289,15 @@ const ReviewModal = ({ onLogout }) => (
         </div>
     </div>
 );
+
+// --- AUTH STYLES ---
+const authContainerStyle = { display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', backgroundColor: theme.secondary, backgroundImage: `radial-gradient(circle at 100% 0%, ${theme.primary}10 0%, transparent 40%), url('https://images.unsplash.com/photo-1556742044-3c52d6e88c02?auto=format&fit=crop&q=90&w=2570')`, backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative', overflow: 'hidden' };
+const authPanelStyle = { display: 'flex', width: '1000px', height: '660px', borderRadius: '40px', overflow: 'hidden', animation: 'slideIn 0.8s cubic-bezier(0.16, 1, 0.3, 1)', zIndex: 10 };
+const authSidebarStyle = { flex: 1, padding: '60px', backgroundImage: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&q=90&w=2570')`, backgroundSize: 'cover', display: 'flex', flexDirection: 'column', justifyContent: 'center', borderRight: '1px solid rgba(255,255,255,0.05)', position: 'relative' };
+const authFormPanelStyle = { width: '450px', padding: '60px', display: 'flex', flexDirection: 'column', justifyContent: 'center' };
+const errorStyle = { padding: '16px', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: theme.danger, borderRadius: '16px', fontSize: '14px', fontWeight: '700', marginBottom: '24px', textAlign: 'center', border: '1px solid rgba(239, 68, 68, 0.1)' };
+const togglePasswordStyle = { position: 'absolute', right: '16px', top: '42px', background: 'none', border: 'none', color: theme.textMuted, cursor: 'pointer', fontSize: '12px', fontWeight: '800' };
+const authStyles = `@keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } } @keyframes scaleUp { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } } .glass-card { background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); } @media (max-width: 1024px) { .glass-card { width: 90% !important; height: auto !important; flex-direction: column !important; } div[style*="flex: 1"] { display: none !important; } div[style*="width: 450px"] { width: 100% !important; padding: 40px !important; } }`;
 
 export default function App() {
   const [token, setToken] = useState(() => {
@@ -379,15 +371,11 @@ export default function App() {
 
   useEffect(() => {
     if (token && restaurant) {
-        // Real-time WebSocket
         const ws = new WebSocket(`ws://localhost:8002/ws/orders/vendor_${restaurant.restaurant_id}`);
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
-            console.log("New order event:", data);
             fetchData(restaurant.restaurant_id);
         };
-
-        // Also poll as fallback/extra safety
         const i = setInterval(() => fetchData(restaurant.restaurant_id), 30000);
         return () => {
             ws.close();
@@ -467,5 +455,6 @@ export default function App() {
             authApi.getMe().then(r => setUser(r.data));
         }} />}
     </Layout>
+    </>
   );
 }

@@ -1238,17 +1238,17 @@ const ProfileView = ({ user, setView, showNotify, notification, onUpdate }) => {
                             <div style={{ display: 'flex', gap: '15px' }}>
                                 <div
                                     onClick={() => setPaymentType('momo')}
-                                    style={{ flex: 1, padding: '20px', borderRadius: '20px', border: `1px solid ${paymentType === 'momo' ? theme.primary : '#1A1A1A'}`, backgroundColor: paymentType === 'momo' ? `${theme.primary}10` : 'rgba(255,255,255,0.02)', textAlign: 'center', cursor: 'pointer' }}
+                                    style={{ flex: 1, padding: '20px', borderRadius: '20px', border: `1px solid ${paymentType === 'momo' ? theme.primary : '#1A1A1A'}`, backgroundColor: paymentType === 'momo' ? `${theme.primary}10` : 'rgba(255,255,255,0.02)', textAlign: 'center', cursor: 'pointer', transition: '0.3s' }}
                                 >
                                     <Smartphone size={32} color={paymentType === 'momo' ? theme.primary : '#666'} style={{ marginInline: 'auto', marginBottom: '10px' }} />
-                                    <div style={{ color: paymentType === 'momo' ? '#FFF' : '#666', fontWeight: '800', fontSize: '14px' }}>Mobile Money</div>
+                                    <div style={{ color: paymentType === 'momo' ? '#FFF' : '#666', fontWeight: '900', fontSize: '14px' }}>Mobile Money</div>
                                 </div>
                                 <div
                                     onClick={() => setPaymentType('card')}
-                                    style={{ flex: 1, padding: '20px', borderRadius: '20px', border: `1px solid ${paymentType === 'card' ? theme.primary : '#1A1A1A'}`, backgroundColor: paymentType === 'card' ? `${theme.primary}10` : 'rgba(255,255,255,0.02)', textAlign: 'center', cursor: 'pointer' }}
+                                    style={{ flex: 1, padding: '20px', borderRadius: '20px', border: `1px solid ${paymentType === 'card' ? theme.primary : '#1A1A1A'}`, backgroundColor: paymentType === 'card' ? `${theme.primary}10` : 'rgba(255,255,255,0.02)', textAlign: 'center', cursor: 'pointer', transition: '0.3s' }}
                                 >
                                     <CreditCard size={32} color={paymentType === 'card' ? theme.primary : '#666'} style={{ marginInline: 'auto', marginBottom: '10px' }} />
-                                    <div style={{ color: paymentType === 'card' ? '#FFF' : '#666', fontWeight: '800', fontSize: '14px' }}>Debit Card</div>
+                                    <div style={{ color: paymentType === 'card' ? '#FFF' : '#666', fontWeight: '900', fontSize: '14px' }}>Debit Card</div>
                                 </div>
                             </div>
 
@@ -1683,6 +1683,16 @@ export default function App() {
         window.location.hash = encodeURIComponent(JSON.stringify(v));
     };
 
+    const syncUser = async () => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            try {
+                const res = await authApi.getMe();
+                setUser(res.data);
+            } catch (e) { localStorage.removeItem('token'); setUser(null); }
+        }
+    };
+
     const init = async () => {
         setLoading(true);
         try {
@@ -1788,7 +1798,7 @@ export default function App() {
                     )}
                     {view === 'cart' && <CartView cart={cart} onRemove={(id) => setCart(cart.filter(i => i.item_id !== id))} setView={handleSetView} notification={notification} showNotify={showNotify} />}
                     {view === 'checkout' && <CheckoutView cart={cart} setView={handleSetView} onOrderSuccess={() => setCart([])} notification={notification} showNotify={showNotify} user={user} />}
-                    {view === 'profile' && <ProfileView user={user} setView={handleSetView} showNotify={showNotify} notification={notification} />}
+                    {view === 'profile' && <ProfileView user={user} setView={handleSetView} showNotify={showNotify} notification={notification} onUpdate={syncUser} />}
                     {view === 'login' && <LoginView setAuthView={handleSetView} onLogin={(u) => { setUser(u); handleSetView('home'); }} />}
                     {view === 'register' && <RegisterView setAuthView={handleSetView} />}
     {/* Informational Views */}

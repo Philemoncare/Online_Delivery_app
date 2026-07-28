@@ -34,6 +34,7 @@ class UserUpdate(BaseModel):
     profile_visibility: Optional[int] = None
     vehicle_info: Optional[str] = None
     id_details: Optional[str] = None
+    payment_methods: Optional[str] = None
 
 class UserOut(UserBase):
     user_id: UUID
