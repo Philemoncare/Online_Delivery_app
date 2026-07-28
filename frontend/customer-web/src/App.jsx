@@ -876,17 +876,29 @@ const CheckoutView = ({ cart, setView, onOrderSuccess }) => {
     );
 };
 
-const ProfileView = ({ user }) => {
+const ProfileView = ({ user, showNotify }) => {
     const [orders, setOrders] = useState([]);
     const [activeTab, setActiveTab] = useState('orders');
     const [reviewing, setReviewing] = useState(null);
     const [rating, setRating] = useState(5);
     const [comment, setComment] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    // Form states for settings
+    const [profileForm, setProfileForm] = useState({
+        full_name: user.full_name,
+        email: user.email,
+        phone: user.phone || ''
+    });
+
+    const [addresses, setAddresses] = useState(() => {
+        try { return JSON.parse(user.address || '[]'); } catch(e) { return []; }
+    });
 
     const loadOrders = async () => {
         try {
             const res = await orderApi.getOrders();
-            setOrders(res.data);
+            setOrders(res.data.sort((a,b) => new Date(b.placed_at) - new Date(a.placed_at)));
         } catch (e) { console.error(e); }
     };
 
@@ -901,11 +913,25 @@ const ProfileView = ({ user }) => {
         return () => ws.close();
     }, [user.user_id]);
 
-    const [notification, setNotification] = useState(null);
+    const handleProfileUpdate = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            await authApi.updateMe(profileForm);
+            showNotify("Identity synchronization complete.");
+        } catch (e) { showNotify("Failed to update profile", "error"); }
+        finally { setLoading(false); }
+    };
 
-    const showNotify = (text, type = 'success') => {
-        setNotification({ text, type });
-        setTimeout(() => setNotification(null), 4000);
+    const handleAddressSave = async (newAddr) => {
+        const updated = [...addresses, newAddr];
+        setLoading(true);
+        try {
+            await authApi.updateMe({ address: JSON.stringify(updated) });
+            setAddresses(updated);
+            showNotify("New coordinate established.");
+        } catch (e) { showNotify("Failed to save address", "error"); }
+        finally { setLoading(false); }
     };
 
     const submitReview = async () => {
@@ -1027,6 +1053,43 @@ const ProfileView = ({ user }) => {
                                         </div>
                                     </motion.div>
                                 ))}
+                            </div>
+                        ) : activeTab === 'settings' ? (
+                            <form onSubmit={handleProfileUpdate} style={{ maxWidth: '500px', animation: 'fadeInUp 0.4s' }}>
+                                <Input label="Full Name" value={profileForm.full_name} onChange={e => setProfileForm({...profileForm, full_name: e.target.value})} icon={<User size={18}/>} />
+                                <Input label="Email Access" value={profileForm.email} onChange={e => setProfileForm({...profileForm, email: e.target.value})} icon={<Mail size={18}/>} />
+                                <Input label="Phone Terminal" value={profileForm.phone} onChange={e => setProfileForm({...profileForm, phone: e.target.value})} icon={<Phone size={18}/>} />
+                                <Button label={loading ? "Synchronizing..." : "Update Identity"} type="submit" style={{ marginTop: '20px', borderRadius: '50px' }} />
+                            </form>
+                        ) : activeTab === 'addresses' ? (
+                            <div style={{ animation: 'fadeInUp 0.4s' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '40px' }}>
+                                    {addresses.length === 0 ? <p style={{ color: '#444', fontWeight: '700' }}>No addresses stored in memory.</p> : addresses.map((a, i) => (
+                                        <div key={i} style={{ padding: '25px', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: '24px', border: '1px solid #1A1A1A', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                                                <MapPin size={20} color={theme.primary} />
+                                                <div style={{ fontWeight: '700', color: '#FFF' }}>{a}</div>
+                                            </div>
+                                            <button onClick={() => {
+                                                const filtered = addresses.filter((_, idx) => idx !== i);
+                                                authApi.updateMe({ address: JSON.stringify(filtered) }).then(() => setAddresses(filtered));
+                                            }} style={{ background: 'none', border: 'none', color: theme.danger, cursor: 'pointer', fontWeight: '800', fontSize: '12px' }}>REMOVE</button>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '30px', borderRadius: '32px', border: '1px solid #1A1A1A' }}>
+                                    <h4 style={{ color: '#FFF', marginBottom: '20px', fontSize: '18px' }}>Establish New coordinate</h4>
+                                    <div style={{ display: 'flex', gap: '15px' }}>
+                                        <input id="new-addr-input" placeholder="Enter delivery address..." style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.2)', border: '1px solid #1A1A1A', borderRadius: '15px', padding: '0 20px', color: '#FFF', outline: 'none' }} />
+                                        <Button label="Save" onClick={() => {
+                                            const val = document.getElementById('new-addr-input').value;
+                                            if (val) {
+                                                handleAddressSave(val);
+                                                document.getElementById('new-addr-input').value = '';
+                                            }
+                                        }} style={{ borderRadius: '15px' }} />
+                                    </div>
+                                </div>
                             </div>
                         ) : (
                             <div style={{ textAlign: 'center', padding: '100px 0' }}>
@@ -1528,7 +1591,7 @@ export default function App() {
                     )}
                     {view === 'cart' && <CartView cart={cart} onRemove={(id) => setCart(cart.filter(i => i.item_id !== id))} setView={setView} />}
                     {view === 'checkout' && <CheckoutView cart={cart} setView={setView} onOrderSuccess={() => setCart([])} />}
-                    {view === 'profile' && <ProfileView user={user} setView={setView} />}
+                    {view === 'profile' && <ProfileView user={user} setView={setView} showNotify={showNotify} />}
                     {view === 'login' && <LoginView setAuthView={setView} onLogin={(u) => { setUser(u); setView('home'); }} />}
                     {view === 'register' && <RegisterView setAuthView={setView} />}
     {/* Informational Views */}
