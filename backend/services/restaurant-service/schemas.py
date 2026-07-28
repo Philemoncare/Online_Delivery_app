@@ -111,3 +111,80 @@ class ReviewOut(ReviewBase):
 
     class Config:
         from_attributes = True
+
+class SubscriptionBase(BaseModel):
+    plan_type: str
+    status: str = "ACTIVE"
+    amount: Decimal
+    end_date: datetime
+
+class SubscriptionOut(SubscriptionBase):
+    subscription_id: UUID
+    restaurant_id: UUID
+    start_date: datetime
+
+    class Config:
+        from_attributes = True
+
+class RestaurantRiderBase(BaseModel):
+    rider_id: UUID
+    status: str = "ACTIVE"
+
+class RestaurantRiderOut(RestaurantRiderBase):
+    id: UUID
+    restaurant_id: UUID
+    joined_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class InquiryBase(BaseModel):
+    name: str
+    email: str
+    message: str
+
+class InquiryCreate(InquiryBase):
+    pass
+
+class InquiryOut(InquiryBase):
+    inquiry_id: UUID
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class PromotionBase(BaseModel):
+    title: str
+    description: Optional[str] = None
+    discount_percentage: Optional[Decimal] = None
+    image_url: Optional[str] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    is_active: bool = True
+    restaurant_id: Optional[UUID] = None
+
+class PromotionCreate(PromotionBase):
+    pass
+
+class PromotionOut(PromotionBase):
+    promo_id: UUID
+
+    class Config:
+        from_attributes = True
+
+class CouponBase(BaseModel):
+    code: str
+    discount_amount: Decimal
+    min_order_value: Decimal
+    is_active: bool = True
+    expiry_date: Optional[datetime] = None
+
+class CouponCreate(CouponBase):
+    pass
+
+class CouponOut(CouponBase):
+    coupon_id: UUID
+
+    class Config:
+        from_attributes = True
+

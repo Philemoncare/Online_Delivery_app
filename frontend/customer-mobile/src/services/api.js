@@ -14,6 +14,7 @@ const REST_URL = getBase(8001);
 const ORDER_URL = getBase(8002);
 const PAY_URL = getBase(8004);
 const DELV_URL = getBase(8003);
+const AI_URL = getBase(8005);
 
 export const authApi = {
   login: (email, password) => {
@@ -66,4 +67,8 @@ export const paymentApi = {
 
 export const deliveryApi = {
     trackDelivery: (orderId) => axios.get(`${DELV_URL}/deliveries/${orderId}/track`)
+};
+
+export const aiApi = {
+    chat: (message) => axios.post(`${AI_URL}/ai/chat`, { message })
 };

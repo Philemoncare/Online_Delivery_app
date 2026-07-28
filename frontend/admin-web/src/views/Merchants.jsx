@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, Table, Badge, Button, theme, Input } from '../components/UI';
 import { restaurantApi, authApi, orderApi } from '../api';
 
-const Merchants = ({ restaurants, stats, onRefresh }) => {
+const Merchants = ({ restaurants, users, stats, onRefresh }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedMerchant, setSelectedMerchant] = useState(null);
     const [merchantMenu, setMerchantMenu] = useState([]);
@@ -16,6 +16,16 @@ const Merchants = ({ restaurants, stats, onRefresh }) => {
     const showMessage = (type, text) => {
         setMessage({ type, text });
         setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+    };
+
+    const handleApprove = async (userId) => {
+        try {
+            await authApi.updateUser(userId, { verification_status: 'APPROVED' });
+            showMessage('success', 'Merchant application approved successfully! 🚀');
+            onRefresh();
+        } catch (e) {
+            showMessage('danger', 'Approval failed. Please try again.');
+        }
     };
 
     const handleViewMerchant = async (merchant) => {
@@ -170,10 +180,13 @@ const Merchants = ({ restaurants, stats, onRefresh }) => {
                 </div>
 
                 <Table
-                    headers={['Merchant Info', 'Operational Status', 'Business Stats', 'Platform Status', 'Actions']}
+                    headers={['Merchant Info', 'Operational Status', 'Business Stats', 'Verification', 'Actions']}
                     data={filtered}
                     renderRow={(r) => {
                         const mStats = stats[r.restaurant_id] || { total_revenue: 0, total_orders: 0 };
+                        const owner = users.find(u => u.user_id === r.owner_id);
+                        const isPending = owner?.verification_status === 'PENDING';
+
                         return (
                         <tr key={r.restaurant_id}>
                             <td style={tdStyle}>
@@ -189,14 +202,17 @@ const Merchants = ({ restaurants, stats, onRefresh }) => {
                                 <Badge status={r.is_open ? 'READY_FOR_PICKUP' : 'CANCELLED'} label={r.is_open ? 'KITCHEN OPEN' : 'KITCHEN CLOSED'} />
                             </td>
                             <td style={tdStyle}>
-                                <div style={{ fontWeight: '800' }}>GHS {mStats.total_revenue.toLocaleString()} <span style={{ color: theme.textMuted, fontSize: '11px' }}>Rev</span></div>
+                                <div style={{ fontWeight: '800' }}>GH₵ {mStats.total_revenue.toLocaleString()} <span style={{ color: theme.textMuted, fontSize: '11px' }}>Rev</span></div>
                                 <div style={{ fontSize: '11px', color: theme.warning }}>★ {r.rating_avg || '0.0'} Rating ({mStats.total_orders} orders)</div>
                             </td>
                             <td style={tdStyle}>
-                                <Badge status={r.is_online ? 'ACTIVE' : 'OFFLINE'} label={r.is_online ? 'VISIBLE' : 'HIDDEN'} />
+                                <Badge status={isPending ? 'PENDING' : 'ACTIVE'} label={isPending ? 'UNDER REVIEW' : 'VERIFIED'} />
                             </td>
                             <td style={tdStyle}>
                                 <div style={{ display: 'flex', gap: '8px' }}>
+                                    {isPending && (
+                                        <button onClick={() => handleApprove(r.owner_id)} style={actionBtnStyle(theme.success)} title="Approve Merchant">✅</button>
+                                    )}
                                     <button onClick={() => handleViewMerchant(r)} style={actionBtnStyle(theme.primary)}>👁️</button>
                                     <button onClick={() => { setSelectedMerchant(r); setIsEditing(true); }} style={actionBtnStyle(theme.accent)}>✏️</button>
                                     <button onClick={() => handleToggleStatus(r)} style={actionBtnStyle(r.is_open ? theme.warning : theme.success)}>{r.is_open ? '⏸️' : '▶️'}</button>
@@ -241,7 +257,7 @@ const Merchants = ({ restaurants, stats, onRefresh }) => {
                                     {/* TELEMETRY ROW */}
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
                                         <TelemetryStat label="Total Volume" value={merchantStats?.total_order_count || 0} icon="📦" />
-                                        <TelemetryStat label="Gross Revenue" value={`GHS ${merchantStats?.total_revenue?.toLocaleString() || 0}`} icon="💰" color={theme.success} />
+                                        <TelemetryStat label="Gross Revenue" value={`GH₵ ${merchantStats?.total_revenue?.toLocaleString() || 0}`} icon="💰" color={theme.success} />
                                         <TelemetryStat label="Active Orders" value={merchantStats?.active_order_count || 0} icon="🔥" color={theme.warning} />
                                         <TelemetryStat label="Success Rate" value={`${merchantStats?.total_order_count ? Math.round((merchantStats.completed_count / merchantStats.total_order_count) * 100) : 0}%`} icon="🎯" />
                                     </div>
@@ -254,7 +270,7 @@ const Merchants = ({ restaurants, stats, onRefresh }) => {
                                                     {merchantMenu.map(item => (
                                                         <div key={item.item_id} style={catalogItemStyle}>
                                                             <div style={{ fontWeight: '700' }}>{item.name}</div>
-                                                            <div style={{ color: theme.primary, fontWeight: '900' }}>GHS {item.price}</div>
+                                                            <div style={{ color: theme.primary, fontWeight: '900' }}>GH₵ {item.price}</div>
                                                         </div>
                                                     ))}
                                                 </div>

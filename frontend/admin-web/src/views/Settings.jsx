@@ -135,8 +135,8 @@ const Settings = ({ user, onRefresh }) => {
                         <Card title="Revenue & Fees">
                             <form onSubmit={handleSystemUpdate} style={{ maxWidth: '500px' }}>
                                 <Input name="commission_rate" label="Platform Commission (%)" type="number" defaultValue={settings.commission_rate} required />
-                                <Input name="min_order_value" label="Minimum Order Value (GHS)" type="number" defaultValue={settings.min_order_value} required />
-                                <Input name="delivery_base_fare" label="Base Delivery Fare (GHS)" type="number" defaultValue={settings.delivery_base_fare} required />
+                                <Input name="min_order_value" label="Minimum Order Value (GH₵)" type="number" defaultValue={settings.min_order_value} required />
+                                <Input name="delivery_base_fare" label="Base Delivery Fare (GH₵)" type="number" defaultValue={settings.delivery_base_fare} required />
                                 <Button label={loading ? "Saving..." : "Save Financials"} type="submit" disabled={loading} />
                             </form>
                         </Card>
@@ -146,7 +146,7 @@ const Settings = ({ user, onRefresh }) => {
                         <Card title="Logistics & Delivery">
                             <form onSubmit={handleSystemUpdate} style={{ maxWidth: '500px' }}>
                                 <Input name="max_delivery_distance" label="Maximum Delivery Distance (km)" type="number" defaultValue={settings.max_delivery_distance || 15} />
-                                <Input name="rider_commission" label="Rider Commission per Order (GHS)" type="number" defaultValue={settings.rider_commission || 5} />
+                                <Input name="rider_commission" label="Rider Commission per Order (GH₵)" type="number" defaultValue={settings.rider_commission || 5} />
                                 <Input name="estimated_prep_time" label="Default Prep Time (mins)" type="number" defaultValue={settings.estimated_prep_time || 20} />
                                 <Button label={loading ? "Saving..." : "Save Delivery Settings"} type="submit" disabled={loading} />
                             </form>

@@ -59,16 +59,20 @@ ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 60))
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
-def verify_password(plain, hashed):
+def verify_password(plain_password, hashed_password):
     try:
-        return bcrypt.checkpw(plain.encode('utf-8'), hashed.strip().encode('utf-8'))
+        # Bcrypt hashes should be bytes for checkpw
+        if isinstance(hashed_password, str):
+            hashed_password = hashed_password.encode('utf-8')
+        return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password)
     except Exception as e:
-        print(f"Bcrypt Error: {e}")
-        # Only fallback if absolutely necessary, but for dev we allow plain match
-        return plain == hashed.strip()
+        print(f"Auth Security Error: Password verification failed: {e}")
+        return False
 
 def get_password_hash(password):
-    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    # Returns a string hash
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
 
 def create_access_token(data: dict):
     to_encode = data.copy()
@@ -77,23 +81,33 @@ def create_access_token(data: dict):
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(database.get_db)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id = str(payload.get("sub")).strip()
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
     except Exception as e:
-        print(f"DEBUG: Token decode failed: {e}")
-        raise HTTPException(status_code=401, detail="Invalid session")
+        print(f"JWT Decode Error: {e}")
+        raise credentials_exception
 
-    # Search by ID or Email as a fallback for SQLite stability
     user = db.query(models.User).filter(models.User.user_id == user_id).first()
-
-    if not user:
-        print(f"DEBUG: User ID {user_id} not found. Checking if it matches email fallback...")
+    if user is None:
+        # Fallback for email as ID if token was generated using email as sub
         user = db.query(models.User).filter(models.User.email == user_id).first()
 
-    if not user:
-        print("DEBUG: User definitely not found.")
-        raise HTTPException(status_code=401, detail="User not recognized")
+    if user is None:
+        raise credentials_exception
+
+    if hasattr(user, 'is_suspended') and user.is_suspended:
+        raise HTTPException(status_code=403, detail="Account suspended")
+
     return user
 
 def log_action(db: Session, user_id: str, action: str, details: str = None):
@@ -108,10 +122,65 @@ def log_action(db: Session, user_id: str, action: str, details: str = None):
 
 @app.post("/api/v1/auth/login", response_model=schemas.Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(database.get_db)):
-    # ... existing code ...
+    user = db.query(models.User).filter(models.User.email == form_data.username).first()
+
+    if not user or not verify_password(form_data.password, user.password_hash):
+        print(f"FAILED LOGIN: {form_data.username}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Use string of user_id for JWT sub
     token = create_access_token(data={"sub": str(user.user_id), "role": user.role.value})
     log_action(db, str(user.user_id), "LOGIN", f"User {user.email} logged in")
-    return {"access_token": token, "refresh_token": token, "token_type": "bearer"}
+
+    # Unified Role-Based Routing
+    redirect_map = {
+        "customer": "/customer/dashboard",
+        "vendor": "/vendor/dashboard",
+        "rider": "/rider/dashboard",
+        "admin": "/admin/dashboard"
+    }
+
+    # Super Admin check
+    redirect_url = redirect_map.get(user.role.value, "/dashboard")
+
+    is_super = False
+    if hasattr(user, 'is_super_admin'):
+        if isinstance(user.is_super_admin, bool):
+            is_super = user.is_super_admin
+        else:
+            try:
+                is_super = bool(int(user.is_super_admin))
+            except:
+                is_super = False
+
+    if is_super:
+        redirect_url = "/super-admin/portal"
+
+    onboarding_complete = True
+    if user.role == models.UserRole.vendor:
+        if hasattr(user, 'verification_status') and user.verification_status == "PENDING":
+            onboarding_complete = False
+            redirect_url = "/vendor/pending-verification"
+        elif hasattr(user, 'onboarding_step') and user.onboarding_step < 7:
+            onboarding_complete = False
+            redirect_url = f"/vendor/register/step-{user.onboarding_step}"
+    elif user.role == models.UserRole.rider:
+        if hasattr(user, 'verification_status') and user.verification_status == "PENDING":
+            onboarding_complete = False
+            redirect_url = "/rider/pending-verification"
+
+    return {
+        "access_token": token,
+        "refresh_token": token,
+        "token_type": "bearer",
+        "redirect_url": redirect_url,
+        "role": user.role.value,
+        "onboarding_complete": onboarding_complete
+    }
 
 @app.post("/api/v1/auth/register", response_model=schemas.UserOut, status_code=status.HTTP_201_CREATED)
 def register(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
@@ -121,10 +190,17 @@ def register(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
 
     hashed_password = get_password_hash(user.password)
     user_data = user.dict(exclude={"password"})
+
+    # Vendors start as PENDING
+    verification_status = "APPROVED"
+    if user.role == models.UserRole.vendor:
+        verification_status = "PENDING"
+
     new_user = models.User(
         **user_data,
         user_id=str(uuid.uuid4()),
-        password_hash=hashed_password
+        password_hash=hashed_password,
+        verification_status=verification_status
     )
     db.add(new_user)
     db.commit()

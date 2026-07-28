@@ -38,8 +38,8 @@ const Analytics = ({ orders, stats, menu }) => {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }}>
-                <StatCard title="Total Revenue" value={`GHS ${totalRevenue.toFixed(2)}`} icon="💰" color="#10B981" />
-                <StatCard title="Avg Order Value" value={`GHS ${avgOrder.toFixed(2)}`} icon="📊" />
+                <StatCard title="Total Revenue" value={`GH₵ ${totalRevenue.toFixed(2)}`} icon="💰" color="#10B981" />
+                <StatCard title="Avg Order Value" value={`GH₵ ${avgOrder.toFixed(2)}`} icon="📊" />
                 <StatCard title="Total Orders" value={orders.length} icon="📦" color="#6366F1" />
                 <StatCard title="Completion Rate" value={`${orders.length ? Math.round((completedOrders/orders.length)*100) : 0}%`} icon="🎯" color={theme.success} />
             </div>

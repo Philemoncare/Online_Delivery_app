@@ -11,10 +11,10 @@ class UserBase(BaseModel):
     role: UserRole
     profile_picture_url: Optional[str] = None
     address: Optional[str] = None
-    is_suspended: Optional[int] = 0
+    is_suspended: Optional[bool] = False
     notification_preferences: Optional[str] = None
     preferred_language: Optional[str] = "en"
-    profile_visibility: Optional[int] = 1
+    profile_visibility: Optional[bool] = True
     vehicle_info: Optional[str] = None
     id_details: Optional[str] = None
 
@@ -37,6 +37,9 @@ class UserUpdate(BaseModel):
 class UserOut(UserBase):
     user_id: UUID
     wallet_balance: float
+    onboarding_step: int
+    verification_status: str
+    is_super_admin: bool
     created_at: datetime
 
     class Config:
@@ -59,6 +62,9 @@ class Token(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str
+    redirect_url: str
+    role: str
+    onboarding_complete: bool
 
 class TokenData(BaseModel):
     user_id: Optional[UUID] = None

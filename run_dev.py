@@ -12,6 +12,8 @@ SERVICES = [
     {"name": "Order", "port": 8002, "path": "backend/services/order-service", "cmd": f"{sys.executable} -m uvicorn main:app --host 127.0.0.1 --port 8002"},
     {"name": "Delv ", "port": 8003, "path": "backend/services/delivery-service", "cmd": f"{sys.executable} -m uvicorn main:app --host 127.0.0.1 --port 8003"},
     {"name": "Pay  ", "port": 8004, "path": "backend/services/payment-service", "cmd": f"{sys.executable} -m uvicorn main:app --host 127.0.0.1 --port 8004"},
+    {"name": "AI   ", "port": 8005, "path": "backend/services/ai-service", "cmd": f"{sys.executable} -m uvicorn main:app --host 127.0.0.1 --port 8005"},
+    {"name": "Market", "port": 3000, "path": "frontend/customer-web", "cmd": "npm.cmd run dev -- --port 3000 --host 127.0.0.1"},
     {"name": "Vend ", "port": 5173, "path": "frontend/vendor-web", "cmd": "npm.cmd run dev -- --port 5173 --host 127.0.0.1"},
     {"name": "Admin", "port": 5174, "path": "frontend/admin-web", "cmd": "npm.cmd run dev -- --port 5174 --host 127.0.0.1"},
 ]

@@ -217,7 +217,7 @@ const Users = ({ users, orders, onRefresh }) => {
                             </td>
                             <td style={tdStyle}>
                                 <div style={{ fontSize: '11px', fontWeight: '800', color: theme.textMuted, textTransform: 'uppercase', marginBottom: '4px' }}>Wallet Balance</div>
-                                <div style={{ fontWeight: '900', color: theme.success, fontSize: '16px' }}>GHS {u.wallet_balance?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                                <div style={{ fontWeight: '900', color: theme.success, fontSize: '16px' }}>GH₵ {u.wallet_balance?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
                             </td>
                             <td style={tdStyle}>
                                 <Badge status={u.is_suspended ? 'CANCELLED' : 'ACTIVE'} label={u.is_suspended ? 'SUSPENDED' : 'ACTIVE'} />
@@ -268,7 +268,7 @@ const Users = ({ users, orders, onRefresh }) => {
                                                 <div style={{ fontSize: '12px', color: theme.textMuted }}>{new Date(o.placed_at).toLocaleString()}</div>
                                             </div>
                                             <div style={{ textAlign: 'right' }}>
-                                                <div style={{ fontWeight: '900', color: theme.primary }}>GHS {o.total_amount.toFixed(2)}</div>
+                                                <div style={{ fontWeight: '900', color: theme.primary }}>GH₵ {o.total_amount.toFixed(2)}</div>
                                                 <Badge status={o.status} />
                                             </div>
                                         </div>

@@ -58,6 +58,12 @@ export const restaurantApi = {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
   },
+  getSubscriptions: (id) => api.get(`${API_CONFIG.rest}/restaurants/${id}/subscriptions`),
+  getActiveSubscription: (id) => api.get(`${API_CONFIG.rest}/restaurants/${id}/subscription/active`),
+  subscribe: (id, plan) => api.post(`${API_CONFIG.rest}/restaurants/${id}/subscribe`, { plan_type: plan }),
+  getRiders: (id) => api.get(`${API_CONFIG.rest}/restaurants/${id}/riders`),
+  addRider: (id, riderId) => api.post(`${API_CONFIG.rest}/restaurants/${id}/riders`, { rider_id: riderId }),
+  updateRiderStatus: (id, riderId, status) => api.patch(`${API_CONFIG.rest}/restaurants/${id}/riders/${rider_id}/status`, { status }),
 };
 
 export const orderApi = {

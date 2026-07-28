@@ -6,7 +6,8 @@ const API_CONFIG = {
   auth: getBaseURL(8000),
   rest: getBaseURL(8001),
   order: getBaseURL(8002),
-  payment: getBaseURL(8004)
+  payment: getBaseURL(8004),
+  ai: getBaseURL(8005)
 };
 
 const api = axios.create();
@@ -70,6 +71,10 @@ export const orderApi = {
 
 export const paymentApi = {
   getPayments: () => api.get(`${API_CONFIG.payment}/api/v1/admin/payments`),
+};
+
+export const aiApi = {
+  chat: (message) => axios.post(`${API_CONFIG.ai}/ai/chat`, { message }),
 };
 
 export default api;

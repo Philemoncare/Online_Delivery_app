@@ -15,6 +15,11 @@ if (!(Test-Path "frontend/admin-web/node_modules")) {
     cd frontend/admin-web; npm install; cd ../..
 }
 
+if (!(Test-Path "frontend/customer-web/node_modules")) {
+    Write-Host "Installing Market dependencies (one-time setup)..." -ForegroundColor Yellow
+    cd frontend/customer-web; npm install; cd ../..
+}
+
 if (!(Test-Path "frontend/vendor-web/node_modules")) {
     Write-Host "Installing Vendor dependencies (one-time setup)..." -ForegroundColor Yellow
     cd frontend/vendor-web; npm install; cd ../..

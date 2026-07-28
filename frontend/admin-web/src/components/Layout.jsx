@@ -86,6 +86,9 @@ const Layout = ({ children, activeTab, onTabChange, user, onLogout }) => {
                     aside.desktop-sidebar { display: none !important; }
                     main { margin-left: 0 !important; padding: 20px !important; }
                     header.mobile-header { display: flex !important; }
+                    .mobile-spacer { display: block !important; }
+                    .stat-grid { grid-template-columns: 1fr !important; }
+                    .card-grid { grid-template-columns: 1fr !important; }
                 }
 
                 @keyframes shimmer {
@@ -146,6 +149,7 @@ const Layout = ({ children, activeTab, onTabChange, user, onLogout }) => {
                         <NavItem active={activeTab === 'reports'} onClick={() => { onTabChange('reports'); setIsMobileMenuOpen(false); }} label="Sales Reports" icon="📈" />
                         <NavItem active={activeTab === 'disputes'} onClick={() => { onTabChange('disputes'); setIsMobileMenuOpen(false); }} label="Disputes" icon="⚖️" />
                         <NavItem active={activeTab === 'audit'} onClick={() => { onTabChange('audit'); setIsMobileMenuOpen(false); }} label="Audit Logs" icon="📜" />
+                        {user?.is_super_admin && <NavItem active={activeTab === 'config'} onClick={() => { onTabChange('config'); setIsMobileMenuOpen(false); }} label="Platform Config" icon="🛡️" />}
                         <NavItem active={activeTab === 'settings'} onClick={() => { onTabChange('settings'); setIsMobileMenuOpen(false); }} label="Settings" icon="⚙️" />
                     </nav>
                 </div>
@@ -154,7 +158,7 @@ const Layout = ({ children, activeTab, onTabChange, user, onLogout }) => {
             {/* Sidebar Desktop */}
             <aside className="desktop-sidebar" style={{
                 width: '280px',
-                backgroundColor: 'rgba(15, 23, 42, 0.4)',
+                backgroundColor: user?.is_super_admin ? 'rgba(88, 28, 135, 0.4)' : 'rgba(15, 23, 42, 0.4)',
                 backdropFilter: 'blur(20px)',
                 WebkitBackdropFilter: 'blur(20px)',
                 padding: '40px 24px',
@@ -169,9 +173,9 @@ const Layout = ({ children, activeTab, onTabChange, user, onLogout }) => {
                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '48px' }}>
-                    <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: `linear-gradient(135deg, ${theme.primary}, ${theme.accent})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900', color: '#FFF', fontSize: '20px', boxShadow: '0 8px 16px rgba(99, 102, 241, 0.3)' }}>f</div>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: `linear-gradient(135deg, ${user?.is_super_admin ? '#9333ea' : theme.primary}, ${user?.is_super_admin ? '#db2777' : theme.accent})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900', color: '#FFF', fontSize: '20px', boxShadow: '0 8px 16px rgba(99, 102, 241, 0.3)' }}>{user?.is_super_admin ? 'S' : 'f'}</div>
                     <div className="brand-text" style={{ fontSize: '22px', fontWeight: '900', color: theme.text, letterSpacing: '-1px' }}>
-                        fDA <span style={{ color: theme.primary, opacity: 0.8 }}>CENTRAL</span>
+                        fDA <span style={{ color: user?.is_super_admin ? '#c026d3' : theme.primary, opacity: 0.8 }}>{user?.is_super_admin ? 'MASTER' : 'CENTRAL'}</span>
                     </div>
                 </div>
 
@@ -185,6 +189,7 @@ const Layout = ({ children, activeTab, onTabChange, user, onLogout }) => {
                     <NavItem active={activeTab === 'reports'} onClick={() => onTabChange('reports')} label="Sales Reports" icon="📈" />
                     <NavItem active={activeTab === 'disputes'} onClick={() => onTabChange('disputes')} label="Disputes" icon="⚖️" />
                     <NavItem active={activeTab === 'audit'} onClick={() => onTabChange('audit')} label="Audit Logs" icon="📜" />
+                    {user?.is_super_admin && <NavItem active={activeTab === 'config'} onClick={() => onTabChange('config')} label="Platform Config" icon="🛡️" />}
                     <NavItem active={activeTab === 'settings'} onClick={() => onTabChange('settings')} label="Settings" icon="⚙️" />
                 </nav>
 
@@ -203,7 +208,7 @@ const Layout = ({ children, activeTab, onTabChange, user, onLogout }) => {
                             width: '44px',
                             height: '44px',
                             borderRadius: '12px',
-                            backgroundColor: theme.primary,
+                            backgroundColor: user?.is_super_admin ? '#db2777' : theme.primary,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -215,7 +220,7 @@ const Layout = ({ children, activeTab, onTabChange, user, onLogout }) => {
                         </div>
                         <div className="brand-text">
                             <div style={{ fontSize: '14px', fontWeight: '800', color: theme.text }}>{user?.full_name}</div>
-                            <div style={{ fontSize: '11px', color: theme.textMuted, fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Admin Panel</div>
+                            <div style={{ fontSize: '11px', color: theme.textMuted, fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{user?.is_super_admin ? 'Super Controller' : 'Admin Panel'}</div>
                         </div>
                     </div>
                     <button

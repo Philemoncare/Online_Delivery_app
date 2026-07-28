@@ -75,6 +75,7 @@ const Layout = ({ children, activeTab, onTabChange, restaurant, user, onLogout }
                     main { margin-left: 0 !important; padding: 20px !important; }
                     header.mobile-header { display: flex !important; }
                     .mobile-spacer { display: block !important; }
+                    header.desktop-header { flex-direction: column !important; align-items: flex-start !important; gap: 20px !important; }
                 }
                 * { box-sizing: border-box; }
                 ::-webkit-scrollbar { width: 8px; }
@@ -99,6 +100,8 @@ const Layout = ({ children, activeTab, onTabChange, restaurant, user, onLogout }
                     <nav>
                         <NavBtn active={activeTab === 'orders'} onClick={() => { onTabChange('orders'); setIsMobileMenuOpen(false); }} label="Live Kitchen" icon="🔥" />
                         <NavBtn active={activeTab === 'menu'} onClick={() => { onTabChange('menu'); setIsMobileMenuOpen(false); }} label="Menu Catalog" icon="🍴" />
+                        <NavBtn active={activeTab === 'riders'} onClick={() => { onTabChange('riders'); setIsMobileMenuOpen(false); }} label="Delivery Team" icon="🛵" />
+                        <NavBtn active={activeTab === 'subscription'} onClick={() => { onTabChange('subscription'); setIsMobileMenuOpen(false); }} label="Subscription" icon="💎" />
                         <NavBtn active={activeTab === 'reports'} onClick={() => { onTabChange('reports'); setIsMobileMenuOpen(false); }} label="Sales Reports" icon="📈" />
                         <NavBtn active={activeTab === 'settings'} onClick={() => { onTabChange('settings'); setIsMobileMenuOpen(false); }} label="Settings" icon="⚙️" />
                     </nav>
@@ -121,6 +124,8 @@ const Layout = ({ children, activeTab, onTabChange, restaurant, user, onLogout }
                 <nav style={{ flex: 1, overflowY: 'auto' }}>
                     <NavBtn active={activeTab === 'orders'} onClick={() => onTabChange('orders')} label="Live Kitchen" icon="🔥" />
                     <NavBtn active={activeTab === 'menu'} onClick={() => onTabChange('menu')} label="Menu Catalog" icon="🍴" />
+                    <NavBtn active={activeTab === 'riders'} onClick={() => onTabChange('riders')} label="Delivery Team" icon="🛵" />
+                    <NavBtn active={activeTab === 'subscription'} onClick={() => onTabChange('subscription')} label="Subscription" icon="💎" />
                     <NavBtn active={activeTab === 'reports'} onClick={() => onTabChange('reports')} label="Sales Reports" icon="📈" />
                     <NavBtn active={activeTab === 'settings'} onClick={() => onTabChange('settings')} label="Settings" icon="⚙️" />
                 </nav>
@@ -152,7 +157,7 @@ const Layout = ({ children, activeTab, onTabChange, restaurant, user, onLogout }
 
             <main style={{ flex: 1, marginLeft: '280px', padding: '48px', overflowY: 'auto', position: 'relative', zIndex: 1 }}>
                 <div className="mobile-spacer" style={{ display: 'none', height: '80px' }} />
-                <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '48px' }}>
+                <header className="desktop-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '48px' }}>
                     <div>
                         <h1 style={{ margin: 0, fontSize: '36px', fontWeight: '900', letterSpacing: '-1.5px' }}>{restaurant?.name || 'My Kitchen'}</h1>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginTop: '12px' }}>
@@ -177,7 +182,7 @@ const Layout = ({ children, activeTab, onTabChange, restaurant, user, onLogout }
                         borderRadius: '20px', border: `1px solid ${theme.glassBorder}`, textAlign: 'right'
                     }}>
                         <div style={{ fontSize: '11px', fontWeight: '800', color: theme.textMuted, textTransform: 'uppercase', marginBottom: '4px' }}>Daily Target</div>
-                        <div style={{ fontSize: '18px', fontWeight: '900', color: theme.text }}>GHS 2,500.00</div>
+                        <div style={{ fontSize: '18px', fontWeight: '900', color: theme.text }}>GH₵ 2,500.00</div>
                     </div>
                 </header>
                 <div style={{ maxWidth: '1400px', margin: '0 auto' }}>

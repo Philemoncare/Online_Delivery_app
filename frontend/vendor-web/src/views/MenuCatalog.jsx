@@ -161,7 +161,7 @@ const MenuCatalog = ({ menu, restaurantId, onRefresh }) => {
                                         </div>
                                     </td>
                                     <td style={tdStyle}>
-                                        <div style={{ fontWeight: '900', color: theme.text, fontSize: '16px' }}>GHS {parseFloat(item.price).toFixed(2)}</div>
+                                        <div style={{ fontWeight: '900', color: theme.text, fontSize: '16px' }}>GH₵ {parseFloat(item.price).toFixed(2)}</div>
                                     </td>
                                     <td style={tdStyle}>
                                         <Badge status={item.is_available ? 'COMPLETED' : 'CANCELLED'} label={item.is_available ? 'LISTED' : 'HIDDEN'} />
@@ -197,7 +197,7 @@ const MenuCatalog = ({ menu, restaurantId, onRefresh }) => {
                                 <div style={{ gridColumn: 'span 2' }}>
                                     <Input name="name" label="Product Name" defaultValue={editingItem?.name} required placeholder="e.g. Traditional Jollof" />
                                 </div>
-                                <Input name="price" label="Unit Price (GHS)" type="number" step="0.01" defaultValue={editingItem?.price} required />
+                                <Input name="price" label="Unit Price (GH₵)" type="number" step="0.01" defaultValue={editingItem?.price} required />
                                 <Input name="stock" label="Stock Level" type="number" defaultValue={editingItem?.stock_level || 0} required />
                                 <Input name="category" label="Menu Category" defaultValue={editingItem?.category} placeholder="Main Dishes" />
 

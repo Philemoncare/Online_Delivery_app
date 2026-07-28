@@ -25,7 +25,7 @@ const Payments = ({ payments }) => {
                                 <div style={{ fontSize: '11px', color: theme.textMuted }}>{p.order_id}</div>
                             </td>
                             <td style={tdStyle}>
-                                <div style={{ fontWeight: '900', color: theme.success, fontSize: '16px' }}>GHS {p.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                                <div style={{ fontWeight: '900', color: theme.success, fontSize: '16px' }}>GH₵ {p.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
                             </td>
                             <td style={tdStyle}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

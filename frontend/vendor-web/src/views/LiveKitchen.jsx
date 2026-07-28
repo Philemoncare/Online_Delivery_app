@@ -57,13 +57,13 @@ const LiveKitchen = ({ orders, menu, onRefresh }) => {
                                             <span style={{ color: theme.primary, marginRight: '8px' }}>{i.quantity}×</span>
                                             {menu.find(m => m.item_id === i.item_id)?.name || 'Catalog Item'}
                                         </span>
-                                        <span style={{ color: theme.textMuted, fontWeight: '700', fontSize: '13px' }}>GHS {i.unit_price}</span>
+                                        <span style={{ color: theme.textMuted, fontWeight: '700', fontSize: '13px' }}>GH₵ {i.unit_price}</span>
                                     </div>
                                 ))}
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px', paddingTop: '20px', borderTop: `1px dashed ${theme.glassBorder}`, fontWeight: '900' }}>
                                 <span style={{ color: theme.textMuted, fontSize: '14px', textTransform: 'uppercase' }}>Net Total</span>
-                                <span style={{ fontSize: '20px', color: theme.primary }}>GHS {order.total_amount}</span>
+                                <span style={{ fontSize: '20px', color: theme.primary }}>GH₵ {order.total_amount}</span>
                             </div>
                         </div>
 
@@ -139,7 +139,7 @@ const LiveKitchen = ({ orders, menu, onRefresh }) => {
                                         <div style={{ fontWeight: '900', color: theme.primary }}>#{o.order_id.substring(0,8)}</div>
                                     </td>
                                     <td style={tdStyle}><Badge status={o.status} /></td>
-                                    <td style={tdStyle}><span style={{ fontWeight: '900', fontSize: '15px' }}>GHS {o.total_amount}</span></td>
+                                    <td style={tdStyle}><span style={{ fontWeight: '900', fontSize: '15px' }}>GH₵ {o.total_amount}</span></td>
                                     <td style={tdStyle}><span style={{ fontWeight: '600', color: theme.textMuted }}>{o.items.length} Cart Items</span></td>
                                     <td style={tdStyle}>
                                         <div style={{ fontWeight: '600' }}>{new Date(o.placed_at).toLocaleDateString()}</div>

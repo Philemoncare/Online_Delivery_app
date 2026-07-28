@@ -41,6 +41,13 @@ def seed():
             wallet_balance DECIMAL(10,2) DEFAULT 0.00,
             address TEXT,
             is_suspended NUMERIC(1,0) DEFAULT 0,
+            onboarding_step INTEGER DEFAULT 1,
+            verification_status VARCHAR(20) DEFAULT 'APPROVED',
+            is_super_admin NUMERIC(1,0) DEFAULT 0,
+            google_id VARCHAR(255),
+            notification_preferences TEXT,
+            preferred_language VARCHAR(10) DEFAULT 'en',
+            profile_visibility NUMERIC(1,0) DEFAULT 1,
             vehicle_info VARCHAR(255),
             id_details VARCHAR(255),
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -53,6 +60,7 @@ def seed():
             geo_lat DECIMAL(9,6) NOT NULL,
             geo_lng DECIMAL(9,6) NOT NULL,
             is_open BOOLEAN DEFAULT 1,
+            is_online BOOLEAN DEFAULT 1,
             rating_avg DECIMAL(2,1) DEFAULT 0.0,
             cuisine_type VARCHAR(100),
             image_url VARCHAR(500),
@@ -142,6 +150,22 @@ def seed():
             description VARCHAR(255),
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+        CREATE TABLE subscriptions (
+            subscription_id CHAR(36) PRIMARY KEY,
+            restaurant_id CHAR(36) NOT NULL,
+            plan_type VARCHAR(20) NOT NULL, -- WEEKLY, MONTHLY, ANNUAL
+            status VARCHAR(20) DEFAULT 'ACTIVE',
+            amount DECIMAL(10,2) NOT NULL,
+            start_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            end_date TIMESTAMP NOT NULL
+        );
+        CREATE TABLE restaurant_riders (
+            id CHAR(36) PRIMARY KEY,
+            restaurant_id CHAR(36) NOT NULL,
+            rider_id CHAR(36) NOT NULL,
+            status VARCHAR(20) DEFAULT 'ACTIVE',
+            joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
         CREATE TABLE suppliers (
             supplier_id CHAR(36) PRIMARY KEY,
             name VARCHAR(255) NOT NULL,
@@ -167,6 +191,25 @@ def seed():
             description TEXT,
             date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+        CREATE TABLE promotions (
+            promo_id CHAR(36) PRIMARY KEY,
+            restaurant_id CHAR(36),
+            title VARCHAR(255) NOT NULL,
+            description TEXT,
+            discount_percentage DECIMAL(5,2),
+            image_url VARCHAR(500),
+            start_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            end_date TIMESTAMP,
+            is_active BOOLEAN DEFAULT 1
+        );
+        CREATE TABLE coupons (
+            coupon_id CHAR(36) PRIMARY KEY,
+            code VARCHAR(50) UNIQUE NOT NULL,
+            discount_amount DECIMAL(10,2),
+            min_order_value DECIMAL(10,2),
+            is_active BOOLEAN DEFAULT 1,
+            expiry_date TIMESTAMP
+        );
     ''')
 
     # 2. Data Generation
@@ -178,13 +221,18 @@ def seed():
     cursor.execute("INSERT INTO users (user_id, full_name, phone, email, role, password_hash) VALUES (?,?,?,?,?,?)",
                    (admin_id, "Platform Admin", "0000000000", "admin@example.com", "admin", pw_hash))
 
+    # 2.1.1 Super Admin
+    super_admin_id = str(uuid.uuid4())
+    cursor.execute("INSERT INTO users (user_id, full_name, phone, email, role, password_hash, is_super_admin) VALUES (?,?,?,?,?,?,?)",
+                   (super_admin_id, "Master Super Admin", "9999999999", "super@fda.com", "admin", pw_hash, 1))
+
     # 2.2 Riders (20)
     rider_ids = []
     for i in range(20):
         r_id = str(uuid.uuid4())
         rider_ids.append(r_id)
-        cursor.execute("INSERT INTO users (user_id, full_name, phone, email, role, password_hash, vehicle_info, id_details) VALUES (?,?,?,?,?,?,?,?)",
-                       (r_id, f"Rider {i+1}", f"02700000{i:02d}", f"rider{i+1}@example.com", "rider", pw_hash, "Honda Civic - GS-1234", "ID-99887766"))
+        cursor.execute("INSERT INTO users (user_id, full_name, phone, email, role, password_hash, vehicle_info, id_details, onboarding_step, verification_status) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                       (r_id, f"Rider {i+1}", f"02700000{i:02d}", f"rider{i+1}@example.com", "rider", pw_hash, "Honda Civic - GS-1234", "ID-99887766", 3, "APPROVED"))
 
     # 2.3 Customers (50)
     customer_ids = []
@@ -207,16 +255,30 @@ def seed():
         restaurant_ids.append(res_id)
         vendor_id = str(uuid.uuid4())
         # Create a vendor user for each restaurant
-        cursor.execute("INSERT INTO users (user_id, full_name, phone, email, role, password_hash) VALUES (?,?,?,?,?,?)",
-                       (vendor_id, f"Vendor {i+1}", f"02411111{i:02d}", f"vendor{i+1}@example.com", "vendor", pw_hash))
+        cursor.execute("INSERT INTO users (user_id, full_name, phone, email, role, password_hash, onboarding_step) VALUES (?,?,?,?,?,?,?)",
+                       (vendor_id, f"Vendor {i+1}", f"02411111{i:02d}", f"vendor{i+1}@example.com", "vendor", pw_hash, 7))
 
         # Link default vendor@example.com to the first restaurant for easy testing
         v_email = f"vendor{i+1}@example.com"
         if i == 0: v_email = "vendor@example.com"
         cursor.execute("UPDATE users SET email=? WHERE user_id=?", (v_email, vendor_id))
 
-        cursor.execute("INSERT INTO restaurants (restaurant_id, owner_id, name, address, geo_lat, geo_lng, cuisine_type, opening_hours, delivery_radius) VALUES (?,?,?,?,?,?,?,?,?)",
-                       (res_id, vendor_id, f"Food Palace {i+1}", f"Street {i+1}, Accra", 5.60 + (i*0.01), -0.18 - (i*0.01), random.choice(cuisines), "08:00 - 22:00", 15.0))
+        cursor.execute("INSERT INTO restaurants (restaurant_id, owner_id, name, address, geo_lat, geo_lng, cuisine_type, opening_hours, delivery_radius, is_online) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                       (res_id, vendor_id, f"Food Palace {i+1}", f"Street {i+1}, Accra", 5.60 + (i*0.01), -0.18 - (i*0.01), random.choice(cuisines), "08:00 - 22:00", 15.0, 1))
+
+        # Add Subscription for each restaurant
+        sub_id = str(uuid.uuid4())
+        plan = random.choice(["WEEKLY", "MONTHLY", "ANNUAL"])
+        amount = {"WEEKLY": 50, "MONTHLY": 180, "ANNUAL": 1800}[plan]
+        end_date = (datetime.now() + timedelta(days={"WEEKLY": 7, "MONTHLY": 30, "ANNUAL": 365}[plan])).strftime("%Y-%m-%d %H:%M:%S")
+        cursor.execute("INSERT INTO subscriptions (subscription_id, restaurant_id, plan_type, status, amount, end_date) VALUES (?,?,?,?,?,?)",
+                       (sub_id, res_id, plan, "ACTIVE", amount, end_date))
+
+        # Assign 2 random riders to each restaurant
+        assigned_riders = random.sample(rider_ids, 2)
+        for r_id in assigned_riders:
+            cursor.execute("INSERT INTO restaurant_riders (id, restaurant_id, rider_id) VALUES (?,?,?)",
+                           (str(uuid.uuid4()), res_id, r_id))
 
         # 15 Menu items per restaurant
         for j in range(15):
@@ -251,6 +313,12 @@ def seed():
     # 2.6 System Settings
     cursor.execute("INSERT INTO system_settings (key, value) VALUES (?,?)", ("commission_rate", "10"))
     cursor.execute("INSERT INTO system_settings (key, value) VALUES (?,?)", ("platform_name", "fDA Delivery"))
+
+    # 2.7 Sample Promotions
+    cursor.execute("INSERT INTO promotions (promo_id, title, description, discount_percentage, image_url) VALUES (?,?,?,?,?)",
+                   (str(uuid.uuid4()), "Welcome Offer", "Get 20% off your first order with WorldPlate!", 20.0, "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=1000"))
+    cursor.execute("INSERT INTO promotions (promo_id, title, description, discount_percentage, image_url) VALUES (?,?,?,?,?)",
+                   (str(uuid.uuid4()), "Weekend Feast", "Enjoy massive discounts every Saturday and Sunday.", 15.0, "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&q=80&w=1000"))
 
     conn.commit()
     conn.close()

@@ -5,7 +5,7 @@ import {
   KeyboardAvoidingView, Platform, Switch
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { authApi, restaurantApi, orderApi } from './src/services/api';
+import { authApi, restaurantApi, orderApi, aiApi } from './src/services/api';
 import axios from 'axios';
 
 const { width, height } = Dimensions.get('window');
@@ -66,6 +66,8 @@ export default function App() {
   const [currentOrder, setCurrentOrder] = useState(null);
   const [myOrders, setMyOrders] = useState([]);
   const [riderLocation, setRiderLocation] = useState(null);
+  const [aiMessages, setAiMessages] = useState([{ role: 'ai', text: '👋 Hello! I am your fDA Concierge. I can help you find restaurants, track orders, or provide support. What would you like to explore today?' }]);
+  const [aiInput, setAiInput] = useState('');
 
   // Form states
   const [email, setEmail] = useState('customer@example.com');
@@ -197,6 +199,22 @@ export default function App() {
   };
 
   const handleLogout = () => { setToken(null); setUser(null); setView('login'); };
+
+  const sendAiMessage = async () => {
+    if (!aiInput.trim()) return;
+    const msg = aiInput;
+    setAiInput('');
+    setAiMessages(prev => [...prev, { role: 'user', text: msg }]);
+    setLoading(true);
+    try {
+        const res = await aiApi.chat(msg);
+        setAiMessages(prev => [...prev, { role: 'ai', text: res.data.reply }]);
+    } catch (e) {
+        setAiMessages(prev => [...prev, { role: 'ai', text: 'I am having trouble connecting to my knowledge base. Please try again later.' }]);
+    } finally {
+        setLoading(false);
+    }
+  };
 
   const filteredRestaurants = useMemo(() => {
     return restaurants.filter(r => r.name.toLowerCase().includes(search.toLowerCase()) && r.is_open);
@@ -347,7 +365,7 @@ export default function App() {
                         <View style={{flex: 1}}>
                             <Text style={styles.itemName}>{item.name}</Text>
                             <Text style={styles.itemDesc} numberOfLines={2}>{item.description || 'Crafted with premium ingredients for the ultimate gourmet experience.'}</Text>
-                            <Text style={styles.itemPrice}>GHS {item.price.toFixed(2)}</Text>
+                            <Text style={styles.itemPrice}>GH₵ {item.price.toFixed(2)}</Text>
                         </View>
                         <TouchableOpacity style={styles.addBtn} onPress={() => addToCart(item)}><Text style={styles.addBtnText}>+</Text></TouchableOpacity>
                     </GlassCard>
@@ -360,7 +378,7 @@ export default function App() {
                         <View style={styles.cartCount}><Text style={{ color: COLORS.primary, fontWeight: '900', fontSize: 12 }}>{cart.length}</Text></View>
                         <Text style={styles.cartBarText}>VIEW BASKET</Text>
                     </View>
-                    <Text style={styles.cartBarPrice}>GHS {cart.reduce((s,i)=>s+(i.price*i.quantity),0).toFixed(2)}</Text>
+                    <Text style={styles.cartBarPrice}>GH₵ {cart.reduce((s,i)=>s+(i.price*i.quantity),0).toFixed(2)}</Text>
                 </TouchableOpacity>
             )}
           </View>
@@ -378,9 +396,9 @@ export default function App() {
                         <GlassCard key={i.item_id} style={styles.cartItem}>
                             <View style={{flex: 1}}>
                                 <Text style={{fontWeight: '800', color: COLORS.text, fontSize: 16}}>{i.quantity}x {i.name}</Text>
-                                <Text style={{color: COLORS.textMuted, fontSize: 12}}>GHS {i.price.toFixed(2)} each</Text>
+                                <Text style={{color: COLORS.textMuted, fontSize: 12}}>GH₵ {i.price.toFixed(2)} each</Text>
                             </View>
-                            <Text style={{color: COLORS.primary, fontWeight: '900', fontSize: 16}}>GHS {(i.price * i.quantity).toFixed(2)}</Text>
+                            <Text style={{color: COLORS.primary, fontWeight: '900', fontSize: 16}}>GH₵ {(i.price * i.quantity).toFixed(2)}</Text>
                         </GlassCard>
                     ))}
 
@@ -393,15 +411,15 @@ export default function App() {
 
                     <View style={{ marginTop: 30, marginBottom: 40 }}>
                         <Text style={styles.sectionTitle}>Order Summary</Text>
-                        <View style={styles.summaryRow}><Text style={styles.summaryLabel}>Subtotal</Text><Text style={styles.summaryValue}>GHS {cart.reduce((s,i)=>s+(i.price*i.quantity),0).toFixed(2)}</Text></View>
+                        <View style={styles.summaryRow}><Text style={styles.summaryLabel}>Subtotal</Text><Text style={styles.summaryValue}>GH₵ {cart.reduce((s,i)=>s+(i.price*i.quantity),0).toFixed(2)}</Text></View>
                         <View style={styles.summaryRow}><Text style={styles.summaryLabel}>Delivery Fee</Text><Text style={[styles.summaryValue, {color: COLORS.success}]}>FREE</Text></View>
-                        <View style={styles.summaryRow}><Text style={styles.summaryLabel}>Service Fee</Text><Text style={styles.summaryValue}>GHS 2.50</Text></View>
+                        <View style={styles.summaryRow}><Text style={styles.summaryLabel}>Service Fee</Text><Text style={styles.summaryValue}>GH₵ 2.50</Text></View>
                     </View>
                 </ScrollView>
                 <View style={styles.footer}>
                     <View style={styles.totalRow}>
                         <Text style={{fontWeight: '800', fontSize: 18, color: COLORS.textMuted}}>Total Payable</Text>
-                        <Text style={{fontWeight: '900', fontSize: 28, color: COLORS.white}}>GHS {(cart.reduce((s,i)=>s+(i.price*i.quantity),0) + 2.50).toFixed(2)}</Text>
+                        <Text style={{fontWeight: '900', fontSize: 28, color: COLORS.white}}>GH₵ {(cart.reduce((s,i)=>s+(i.price*i.quantity),0) + 2.50).toFixed(2)}</Text>
                     </View>
                     <TouchableOpacity style={styles.primaryBtn} onPress={placeOrder} disabled={loading}>
                         {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.primaryBtnText}>Proceed to Payment</Text>}
@@ -416,7 +434,7 @@ export default function App() {
                 <GlassCard style={{ padding: 40, alignItems: 'center', width: '100%' }}>
                     <View style={styles.paymentIcon}><Text style={{ fontSize: 40 }}>📱</Text></View>
                     <Text style={{ color: COLORS.textMuted, marginBottom: 8, fontWeight: '700' }}>TOTAL AMOUNT</Text>
-                    <Text style={{ fontSize: 48, fontWeight: '900', color: COLORS.white, marginBottom: 30 }}>GHS {currentOrder?.total_amount?.toFixed(2)}</Text>
+                    <Text style={{ fontSize: 48, fontWeight: '900', color: COLORS.white, marginBottom: 30 }}>GH₵ {currentOrder?.total_amount?.toFixed(2)}</Text>
 
                     <TouchableOpacity style={[styles.primaryBtn, {width: '100%'}]} onPress={simulatePayment} disabled={loading}>
                         <Text style={styles.primaryBtnText}>Simulate MoMo Payment</Text>
@@ -488,7 +506,7 @@ export default function App() {
                                 <View style={{ height: 1, backgroundColor: COLORS.glassBorder, marginVertical: 16 }} />
                                 <View style={styles.rowBetween}>
                                     <Text style={{ color: COLORS.textMuted, fontWeight: '600' }}>Gourmet Selection</Text>
-                                    <Text style={{ color: COLORS.primary, fontWeight: '900', fontSize: 18 }}>GHS {item.total_amount.toFixed(2)}</Text>
+                                    <Text style={{ color: COLORS.primary, fontWeight: '900', fontSize: 18 }}>GH₵ {item.total_amount.toFixed(2)}</Text>
                                 </View>
                             </GlassCard>
                         </TouchableOpacity>
@@ -573,11 +591,59 @@ export default function App() {
             </ScrollView>
         )}
 
+        {view === 'ai' && (
+            <View style={{flex: 1, padding: 20}}>
+                <View style={styles.menuHeader}>
+                    <TouchableOpacity onPress={() => setView('home')} style={styles.backCircle}><Text style={{color: '#FFF'}}>←</Text></TouchableOpacity>
+                    <Text style={styles.menuTitle}>AI Concierge</Text>
+                </View>
+
+                <ScrollView style={{ flex: 1, padding: 10 }}>
+                    {aiMessages.map((m, i) => (
+                        <View key={i} style={{
+                            alignSelf: m.role === 'ai' ? 'flex-start' : 'flex-end',
+                            backgroundColor: m.role === 'ai' ? COLORS.glass : COLORS.primary,
+                            padding: 16, borderRadius: 20, marginBottom: 12, maxWidth: '85%',
+                            borderBottomLeftRadius: m.role === 'ai' ? 4 : 20,
+                            borderBottomRightRadius: m.role === 'user' ? 4 : 20,
+                            borderWidth: 1, borderColor: m.role === 'ai' ? COLORS.glassBorder : COLORS.primary
+                        }}>
+                            <Text style={{ color: m.role === 'ai' ? COLORS.text : '#000', fontWeight: '600', fontSize: 14 }}>{m.text}</Text>
+                        </View>
+                    ))}
+                    {loading && <Text style={{ color: COLORS.textMuted, fontSize: 12, fontStyle: 'italic', marginLeft: 10 }}>Thinking...</Text>}
+                </ScrollView>
+
+                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+                    <View style={{ flexDirection: 'row', gap: 10, paddingVertical: 20 }}>
+                        <View style={{ flex: 1 }}>
+                            <GlassCard style={{ padding: 4, borderRadius: 16 }}>
+                                <TextInput
+                                    style={styles.searchInput}
+                                    value={aiInput}
+                                    onChangeText={setAiInput}
+                                    placeholder="Ask for recommendations..."
+                                    placeholderTextColor={COLORS.textMuted}
+                                />
+                            </GlassCard>
+                        </View>
+                        <TouchableOpacity style={[styles.primaryBtn, { width: 56, padding: 0, justifyContent: 'center' }]} onPress={sendAiMessage}>
+                            <Text style={{ fontSize: 20 }}>🛰️</Text>
+                        </TouchableOpacity>
+                    </View>
+                </KeyboardAvoidingView>
+            </View>
+        )}
+
         {(view !== 'login' && view !== 'register') && (
           <View style={styles.navbar}>
             <TouchableOpacity onPress={() => setView('home')} style={styles.navItem}>
                 <Text style={{ fontSize: 20 }}>🌌</Text>
                 <Text style={[styles.navText, view === 'home' && styles.navTextActive]}>EXPLORE</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setView('ai')} style={styles.navItem}>
+                <Text style={{ fontSize: 20 }}>🤖</Text>
+                <Text style={[styles.navText, view === 'ai' && styles.navTextActive]}>AI HELPER</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => { fetchMyOrders(); setView('orders'); }} style={styles.navItem}>
                 <Text style={{ fontSize: 20 }}>📦</Text>

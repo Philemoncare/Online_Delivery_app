@@ -27,6 +27,30 @@ class Restaurant(Base):
 
     menu_items = relationship("MenuItem", back_populates="restaurant")
     reviews = relationship("Review", back_populates="restaurant")
+    subscriptions = relationship("Subscription", back_populates="restaurant")
+    riders = relationship("RestaurantRider", back_populates="restaurant")
+
+class Subscription(Base):
+    __tablename__ = "subscriptions"
+    subscription_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    restaurant_id = Column(UUID(as_uuid=True), ForeignKey("restaurants.restaurant_id", ondelete="CASCADE"), nullable=False)
+    plan_type = Column(String(20), nullable=False) # WEEKLY, MONTHLY, ANNUAL
+    status = Column(String(20), default="ACTIVE")
+    amount = Column(Numeric(10, 2), nullable=False)
+    start_date = Column(DateTime(timezone=True), server_default=func.now())
+    end_date = Column(DateTime(timezone=True), nullable=False)
+
+    restaurant = relationship("Restaurant", back_populates="subscriptions")
+
+class RestaurantRider(Base):
+    __tablename__ = "restaurant_riders"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    restaurant_id = Column(UUID(as_uuid=True), ForeignKey("restaurants.restaurant_id"), nullable=False)
+    rider_id = Column(UUID(as_uuid=True), nullable=False)
+    status = Column(String(20), default="ACTIVE")
+    joined_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    restaurant = relationship("Restaurant", back_populates="riders")
 
 class MenuItem(Base):
     __tablename__ = "menu_items"
@@ -79,3 +103,33 @@ class Review(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     restaurant = relationship("Restaurant", back_populates="reviews")
+
+class Inquiry(Base):
+    __tablename__ = "inquiries"
+    inquiry_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String(255), nullable=False)
+    email = Column(String(255), nullable=False)
+    message = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class Promotion(Base):
+    __tablename__ = "promotions"
+    promo_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    restaurant_id = Column(UUID(as_uuid=True), ForeignKey("restaurants.restaurant_id", ondelete="CASCADE"), nullable=True) # Null for platform-wide
+    title = Column(String(255), nullable=False)
+    description = Column(Text)
+    discount_percentage = Column(Numeric(5,2))
+    image_url = Column(String(500))
+    start_date = Column(DateTime(timezone=True), server_default=func.now())
+    end_date = Column(DateTime(timezone=True))
+    is_active = Column(Boolean, default=True)
+
+class Coupon(Base):
+    __tablename__ = "coupons"
+    coupon_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    code = Column(String(50), unique=True, nullable=False)
+    discount_amount = Column(Numeric(10,2))
+    min_order_value = Column(Numeric(10,2))
+    is_active = Column(Boolean, default=True)
+    expiry_date = Column(DateTime(timezone=True))
+

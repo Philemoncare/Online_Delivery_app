@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List, Optional, Dict
+from datetime import datetime, timedelta
 from uuid import UUID
 import json
 import shutil
@@ -405,3 +406,128 @@ def get_inventory_stats(id: UUID, db: Session = Depends(database.get_db)):
         "out_of_stock_count": len(out_of_stock_items),
         "total_stock": sum(item.stock_level for item in items)
     }
+
+# --- SUBSCRIPTIONS ---
+
+@app.get("/api/v1/restaurants/{id}/subscriptions", response_model=List[schemas.SubscriptionOut])
+def get_restaurant_subscriptions(id: UUID, db: Session = Depends(database.get_db)):
+    return db.query(models.Subscription).filter(models.Subscription.restaurant_id == id).order_by(models.Subscription.start_date.desc()).all()
+
+@app.get("/api/v1/restaurants/{id}/subscription/active", response_model=Optional[schemas.SubscriptionOut])
+def get_active_subscription(id: UUID, db: Session = Depends(database.get_db)):
+    return db.query(models.Subscription).filter(
+        models.Subscription.restaurant_id == id,
+        models.Subscription.status == 'ACTIVE',
+        models.Subscription.end_date > datetime.now()
+    ).first()
+
+@app.post("/api/v1/restaurants/{id}/subscribe", response_model=schemas.SubscriptionOut)
+def subscribe_restaurant(id: UUID, plan: dict, auth_data: dict = Depends(verify_token), db: Session = Depends(database.get_db)):
+    # Verify ownership
+    restaurant = db.query(models.Restaurant).filter(models.Restaurant.restaurant_id == id, models.Restaurant.owner_id == UUID(auth_data["user_id"])).first()
+    if not restaurant and auth_data["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    plan_type = plan.get("plan_type")
+    amounts = {"WEEKLY": 50, "MONTHLY": 180, "ANNUAL": 1800}
+    days = {"WEEKLY": 7, "MONTHLY": 30, "ANNUAL": 365}
+
+    if plan_type not in amounts:
+        raise HTTPException(status_code=400, detail="Invalid plan type")
+
+    # Deactivate existing subscriptions
+    db.query(models.Subscription).filter(models.Subscription.restaurant_id == id).update({"status": "EXPIRED"})
+
+    new_sub = models.Subscription(
+        restaurant_id=id,
+        plan_type=plan_type,
+        amount=amounts[plan_type],
+        end_date=datetime.now() + timedelta(days=days[plan_type]),
+        status="ACTIVE"
+    )
+    db.add(new_sub)
+    db.commit()
+    db.refresh(new_sub)
+    return new_sub
+
+# --- RESTAURANT RIDERS ---
+
+@app.get("/api/v1/restaurants/{id}/riders", response_model=List[schemas.RestaurantRiderOut])
+def get_restaurant_riders(id: UUID, db: Session = Depends(database.get_db)):
+    return db.query(models.RestaurantRider).filter(models.RestaurantRider.restaurant_id == id).all()
+
+@app.post("/api/v1/restaurants/{id}/riders", response_model=schemas.RestaurantRiderOut)
+def add_restaurant_rider(id: UUID, rider: schemas.RestaurantRiderBase, auth_data: dict = Depends(verify_token), db: Session = Depends(database.get_db)):
+    # Verify ownership
+    restaurant = db.query(models.Restaurant).filter(models.Restaurant.restaurant_id == id, models.Restaurant.owner_id == UUID(auth_data["user_id"])).first()
+    if not restaurant and auth_data["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    db_rider = models.RestaurantRider(
+        restaurant_id=id,
+        rider_id=rider.rider_id,
+        status=rider.status
+    )
+    db.add(db_rider)
+    db.commit()
+    db.refresh(db_rider)
+    return db_rider
+
+@app.patch("/api/v1/restaurants/{id}/riders/{rider_id}/status")
+def update_restaurant_rider_status(id: UUID, rider_id: UUID, status_update: dict, auth_data: dict = Depends(verify_token), db: Session = Depends(database.get_db)):
+    db_rider = db.query(models.RestaurantRider).filter(models.RestaurantRider.restaurant_id == id, models.RestaurantRider.rider_id == rider_id).first()
+    if not db_rider:
+        raise HTTPException(status_code=404, detail="Rider not found for this restaurant")
+
+    db_rider.status = status_update.get("status", db_rider.status)
+    db.commit()
+    return {"status": "success"}
+
+# --- INQUIRIES ---
+
+@app.post("/api/v1/public/inquiries", response_model=schemas.InquiryOut)
+def create_inquiry(inquiry: schemas.InquiryCreate, db: Session = Depends(database.get_db)):
+    db_inquiry = models.Inquiry(**inquiry.dict())
+    db.add(db_inquiry)
+    db.commit()
+    db.refresh(db_inquiry)
+    return db_inquiry
+
+@app.get("/api/v1/admin/inquiries", response_model=List[schemas.InquiryOut])
+def get_inquiries(auth_data: dict = Depends(verify_token), db: Session = Depends(database.get_db)):
+    if auth_data["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Forbidden")
+    return db.query(models.Inquiry).order_by(models.Inquiry.created_at.desc()).all()
+
+# --- PUBLIC AGGREGATIONS ---
+
+@app.get("/api/v1/public/featured-items", response_model=List[schemas.MenuItemOut])
+def get_featured_items(db: Session = Depends(database.get_db)):
+    return db.query(models.MenuItem).filter(models.MenuItem.is_featured == True, models.MenuItem.is_available == True).limit(8).all()
+
+@app.get("/api/v1/public/categories")
+def get_categories(db: Session = Depends(database.get_db)):
+    cats = db.query(models.MenuItem.category).distinct().all()
+    return [c[0] for c in cats if c[0]]
+
+# --- PROMOTION ENDPOINTS ---
+
+@app.get("/api/v1/public/promotions", response_model=List[schemas.PromotionOut])
+def get_promotions(restaurant_id: Optional[UUID] = None, db: Session = Depends(database.get_db)):
+    query = db.query(models.Promotion).filter(models.Promotion.is_active == True)
+    if restaurant_id:
+        query = query.filter(models.Promotion.restaurant_id == restaurant_id)
+    else:
+        query = query.filter(models.Promotion.restaurant_id == None)
+    return query.all()
+
+@app.post("/api/v1/promotions", response_model=schemas.PromotionOut)
+def create_promotion(promo: schemas.PromotionCreate, auth_data: dict = Depends(verify_token), db: Session = Depends(database.get_db)):
+    if auth_data["role"] not in ["admin", "vendor"]:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    db_promo = models.Promotion(**promo.dict())
+    db.add(db_promo)
+    db.commit()
+    db.refresh(db_promo)
+    return db_promo
+

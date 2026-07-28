@@ -13,6 +13,7 @@ import AuditLogs from './views/AuditLogs';
 import Payments from './views/Payments';
 import SalesReports from './views/SalesReports';
 import Settings from './views/Settings';
+import AIChat from './components/AIChat';
 
 const Login = ({ onLogin }) => {
     const [email, setEmail] = useState('admin@example.com');
@@ -27,198 +28,107 @@ const Login = ({ onLogin }) => {
         setLoading(true);
         setError('');
         try {
-            const fd = new URLSearchParams();
-            fd.append('username', email);
-            fd.append('password', password);
-            const r = await authApi.login(fd);
+            const params = new URLSearchParams();
+            params.append('username', email);
+            params.append('password', password);
+            const r = await authApi.login(params);
+
+            const { access_token, role } = r.data;
+
+            if (role === 'vendor') {
+                setIsSuccess(true);
+                setTimeout(() => {
+                    window.location.href = `http://localhost:5173/?token=${access_token}`;
+                }, 1000);
+                return;
+            }
+
+            if (role !== 'admin') {
+                setError("Access Denied: Only platform administrators can enter this command center.");
+                setLoading(false);
+                return;
+            }
+
+            localStorage.setItem('admin_token', access_token);
             setIsSuccess(true);
-            setTimeout(() => onLogin(r.data.access_token), 1000);
+            setTimeout(() => {
+                onLogin(access_token);
+            }, 1000);
         } catch (err) {
-            setError(err.response?.data?.detail || 'Login failed. Please check credentials.');
+            setError(err.response?.data?.detail || "Authentication failed.");
             setLoading(false);
         }
     };
 
     return (
-        <div style={{
-            display: 'flex',
-            height: '100vh',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: theme.secondary,
-            backgroundImage: `radial-gradient(circle at 0% 0%, ${theme.primary}15 0%, transparent 50%),
-                             radial-gradient(circle at 100% 100%, ${theme.accent}15 0%, transparent 50%),
-                             url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=2570')`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            position: 'relative',
-            overflow: 'hidden'
-        }}>
-            <style>{`
-                @keyframes float { 0% { transform: translateY(0px) rotate(0deg); } 50% { transform: translateY(-20px) rotate(5deg); } 100% { transform: translateY(0px) rotate(0deg); } }
-                @keyframes fadeInScale { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-                @keyframes successBeat { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
-                .glass-panel {
-                    backdrop-filter: blur(24px) saturate(180%);
-                    -webkit-backdrop-filter: blur(24px) saturate(180%);
-                    background-color: rgba(15, 23, 42, 0.7);
-                    border: 1px solid rgba(255, 255, 255, 0.08);
-                }
-            `}</style>
-
-            <div style={{
-                display: 'flex',
-                width: '1000px',
-                height: '640px',
-                borderRadius: '32px',
-                overflow: 'hidden',
-                animation: 'fadeInScale 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
-                boxShadow: '0 50px 100px -20px rgba(0, 0, 0, 0.5)',
-                position: 'relative',
-                zIndex: 10
-            }} className="glass-panel">
-
-                {/* Left Side: Illustration & Welcome */}
-                <div style={{
-                    flex: 1,
-                    padding: '60px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    backgroundImage: `linear-gradient(rgba(15, 23, 42, 0.5), rgba(15, 23, 42, 0.5)), url('https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=2574')`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    color: '#FFF',
-                    position: 'relative'
-                }}>
-                    <div style={{ position: 'relative', zIndex: 2 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '40px' }}>
-                            <div style={{ width: '40px', height: '40px', backgroundColor: '#FFF', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: theme.primary, fontWeight: '900', fontSize: '24px' }}>f</div>
-                            <span style={{ fontSize: '22px', fontWeight: '900', letterSpacing: '-1px' }}>fDA CENTRAL</span>
-                        </div>
-                        <h2 style={{ fontSize: '42px', fontWeight: '900', lineHeight: '1.1', marginBottom: '20px', letterSpacing: '-2px' }}>Empowering the Future of Food Delivery.</h2>
-                        <p style={{ fontSize: '16px', fontWeight: '500', opacity: 0.9, lineHeight: '1.6', maxWidth: '340px' }}>Master the logistics, manage the marketplace, and drive growth from your command center.</p>
+        <div style={authContainerStyle}>
+            <style>{authStyles}</style>
+            <div style={authPanelStyle} className="glass-card">
+                <div style={authSidebarStyle}>
+                    <div style={{ position: 'absolute', top: '60px', left: '60px' }}>
+                        <div style={{ fontSize: '24px', fontWeight: '900', color: '#FFF', letterSpacing: '-1px' }}>fDA <span style={{ color: theme.primary }}>CENTRAL</span></div>
                     </div>
-
-                    <div style={{ position: 'relative', zIndex: 2 }}>
-                        <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
-                            <div>
-                                <div style={{ fontSize: '24px', fontWeight: '900' }}>24/7</div>
-                                <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', opacity: 0.7 }}>Uptime</div>
-                            </div>
-                            <div style={{ width: '1px', height: '30px', backgroundColor: 'rgba(255,255,255,0.2)' }} />
-                            <div>
-                                <div style={{ fontSize: '24px', fontWeight: '900' }}>99.9%</div>
-                                <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', opacity: 0.7 }}>Efficiency</div>
-                            </div>
-                        </div>
+                    <div style={{ animation: 'scaleUp 1s ease' }}>
+                        <h1 style={{ fontSize: '48px', fontWeight: '900', color: '#FFF', lineHeight: '1.1', marginBottom: '24px', letterSpacing: '-2px' }}>Platform <br /> Command Center.</h1>
+                        <p style={{ fontSize: '18px', color: theme.textMuted, fontWeight: '500', lineHeight: '1.6', maxWidth: '380px' }}>Master the logistics, manage the marketplace, and drive global growth from your unified administrative hub.</p>
                     </div>
-
-                    {/* Decorative element */}
-                    <div style={{ position: 'absolute', bottom: '-40px', right: '-40px', width: '240px', height: '240px', background: 'rgba(255,255,255,0.05)', borderRadius: '50%' }} />
+                    <div style={{ marginTop: '60px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
+                        <div><div style={{ fontSize: '28px', fontWeight: '900', color: theme.primary }}>99.9%</div><div style={{ fontSize: '12px', fontWeight: '700', color: theme.textMuted, textTransform: 'uppercase' }}>Efficiency</div></div>
+                        <div><div style={{ fontSize: '28px', fontWeight: '900', color: theme.primary }}>Global</div><div style={{ fontSize: '12px', fontWeight: '700', color: theme.textMuted, textTransform: 'uppercase' }}>Control</div></div>
+                    </div>
                 </div>
-
-                {/* Right Side: Login Form */}
-                <div style={{ width: '460px', padding: '60px', display: 'flex', flexDirection: 'column', justifyContent: 'center', backgroundColor: 'transparent' }}>
+                <div style={authFormPanelStyle}>
                     {isSuccess ? (
-                        <div style={{ textAlign: 'center', animation: 'successBeat 0.5s ease' }}>
-                            <div style={{ width: '80px', height: '80px', borderRadius: '40px', backgroundColor: theme.success, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', fontSize: '40px' }}>✓</div>
-                            <h2 style={{ fontSize: '28px', fontWeight: '900', color: theme.text, marginBottom: '8px' }}>Identity Verified</h2>
-                            <p style={{ color: theme.textMuted, fontWeight: '600' }}>Synchronizing your dashboard...</p>
-                        </div>
+                        <div style={{ textAlign: 'center' }}><div style={{ fontSize: '64px', marginBottom: '20px' }}>🛡️</div><h2 style={{ fontSize: '28px', fontWeight: '900', color: '#FFF' }}>Secure Access</h2><p style={{ color: theme.textMuted, fontWeight: '600' }}>Synchronizing command parameters...</p></div>
                     ) : (
                         <>
                             <div style={{ marginBottom: '40px' }}>
-                                <h3 style={{ fontSize: '28px', fontWeight: '900', color: theme.text, margin: '0 0 8px 0', letterSpacing: '-1px' }}>Welcome Back</h3>
-                                <p style={{ color: theme.textMuted, margin: 0, fontWeight: '600', fontSize: '15px' }}>Please enter your administrative credentials</p>
+                                <h3 style={{ fontSize: '32px', fontWeight: '900', color: '#FFF', margin: '0 0 8px 0', letterSpacing: '-1px' }}>Admin Login</h3>
+                                <p style={{ color: theme.textMuted, margin: 0, fontWeight: '600' }}>Enter your administrative credentials</p>
                             </div>
-
-                            {error && (
-                                <div style={{
-                                    backgroundColor: 'rgba(239, 68, 68, 0.1)', color: theme.danger, padding: '16px', borderRadius: '16px',
-                                    fontSize: '13px', fontWeight: '700', marginBottom: '24px', border: '1px solid rgba(239, 68, 68, 0.1)', textAlign: 'center'
-                                }}>
-                                    {error}
-                                </div>
-                            )}
-
+                            {error && <div style={errorStyle}>{error}</div>}
                             <form onSubmit={handleSubmit}>
-                                <Input
-                                    label="Administrative Email"
-                                    type="email"
-                                    value={email}
-                                    onChange={e => setEmail(e.target.value)}
-                                    placeholder="name@fda.com"
-                                    required
-                                    icon="📧"
-                                />
-
+                                <Input label="Administrative Email" value={email} onChange={v => setEmail(v.target.value)} placeholder="name@fda.com" required icon="📧" />
                                 <div style={{ position: 'relative' }}>
-                                    <Input
-                                        label="Security Password"
-                                        type={showPassword ? "text" : "password"}
-                                        value={password}
-                                        onChange={e => setPassword(e.target.value)}
-                                        placeholder="••••••••"
-                                        required
-                                        icon="🔒"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        style={{ position: 'absolute', right: '16px', top: '42px', background: 'none', border: 'none', color: theme.textMuted, cursor: 'pointer', fontSize: '14px', fontWeight: '700' }}
-                                    >
-                                        {showPassword ? 'HIDE' : 'SHOW'}
-                                    </button>
+                                    <Input label="Security Password" type={showPassword ? "text" : "password"} value={password} onChange={v => setPassword(v.target.value)} placeholder="••••••••" required icon="🔒" />
+                                    <button type="button" onClick={() => setShowPassword(!showPassword)} style={togglePasswordStyle}>{showPassword ? 'HIDE' : 'SHOW'}</button>
                                 </div>
-
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', padding: '0 4px' }}>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', userSelect: 'none' }}>
-                                        <div style={{
-                                            width: '20px', height: '20px', borderRadius: '6px', border: `2px solid ${theme.glassBorder}`,
-                                            backgroundColor: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                        }}>
-                                            <div style={{ width: '10px', height: '10px', borderRadius: '2px', backgroundColor: theme.primary }} />
-                                        </div>
-                                        <span style={{ fontSize: '14px', color: theme.textMuted, fontWeight: '600' }}>Remember session</span>
-                                    </label>
-                                    <a href="#" style={{ fontSize: '14px', color: theme.primary, fontWeight: '700', textDecoration: 'none' }}>Forgot Access?</a>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}><input type="checkbox" defaultChecked style={{ accentColor: theme.primary, width: '18px', height: '18px' }} /><span style={{ fontSize: '14px', color: theme.textMuted, fontWeight: '600' }}>Secure session</span></label>
+                                    <a href="#" style={{ fontSize: '14px', color: theme.primary, fontWeight: '700', textDecoration: 'none' }}>Forgot access?</a>
                                 </div>
-
-                                <Button
-                                    label={loading ? "Verifying..." : "Sign into Command Center"}
-                                    type="submit"
-                                    style={{ width: '100%', padding: '18px', fontSize: '16px', borderRadius: '18px' }}
-                                    disabled={loading}
-                                    icon={loading ? null : "⚡"}
-                                />
+                                <Button label={loading ? "Verifying..." : "Sign into Command Center"} type="submit" style={{ width: '100%', padding: '18px', fontSize: '16px', borderRadius: '18px' }} disabled={loading} icon={loading ? null : "⚡"} />
                             </form>
-
-                            <div style={{ marginTop: '40px', textAlign: 'center', borderTop: `1px solid ${theme.glassBorder}`, paddingTop: '24px' }}>
-                                <span style={{ fontSize: '11px', color: theme.textMuted, fontWeight: '800', letterSpacing: '1.5px', textTransform: 'uppercase' }}>
-                                    🛡️ Encrypted TLS 1.3 Enterprise Connection
-                                </span>
-                            </div>
+                            <div style={{ marginTop: '40px', textAlign: 'center', fontSize: '11px', color: theme.textMuted, fontWeight: '800', letterSpacing: '1.5px', textTransform: 'uppercase' }}>🛡️ Encrypted TLS 1.3 Enterprise Connection</div>
                         </>
                     )}
                 </div>
             </div>
-
-            {/* Mobile View Support - Hidden on desktop via layout above */}
-            <style>{`
-                @media (max-width: 1024px) {
-                    .glass-panel { width: 90% !important; height: auto !important; flex-direction: column !important; }
-                    div[style*="flex: 1"] { display: none !important; }
-                    div[style*="width: 460px"] { width: 100% !important; padding: 40px !important; }
-                }
-            `}</style>
         </div>
     );
 };
 
+// --- AUTH STYLES ---
+const authContainerStyle = { display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', backgroundColor: theme.secondary, backgroundImage: `radial-gradient(circle at 0% 0%, ${theme.primary}15 0%, transparent 50%), url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=2570')`, backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative', overflow: 'hidden' };
+const authPanelStyle = { display: 'flex', width: '1000px', height: '660px', borderRadius: '40px', overflow: 'hidden', animation: 'slideIn 0.8s cubic-bezier(0.16, 1, 0.3, 1)', zIndex: 10 };
+const authSidebarStyle = { flex: 1, padding: '60px', backgroundImage: `linear-gradient(rgba(15, 23, 42, 0.5), rgba(15, 23, 42, 0.5)), url('https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=2574')`, backgroundSize: 'cover', display: 'flex', flexDirection: 'column', justifyContent: 'center', borderRight: '1px solid rgba(255,255,255,0.05)', position: 'relative' };
+const authFormPanelStyle = { width: '450px', padding: '60px', display: 'flex', flexDirection: 'column', justifyContent: 'center' };
+const errorStyle = { padding: '16px', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: theme.danger, borderRadius: '16px', fontSize: '14px', fontWeight: '700', marginBottom: '24px', textAlign: 'center', border: '1px solid rgba(239, 68, 68, 0.1)' };
+const togglePasswordStyle = { position: 'absolute', right: '16px', top: '42px', background: 'none', border: 'none', color: theme.textMuted, cursor: 'pointer', fontSize: '12px', fontWeight: '800' };
+const authStyles = `@keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } } @keyframes scaleUp { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } } .glass-card { background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); } @media (max-width: 1024px) { .glass-card { width: 90% !important; height: auto !important; flex-direction: column !important; } div[style*="flex: 1"] { display: none !important; } div[style*="width: 450px"] { width: 100% !important; padding: 40px !important; } }`;
+
 
 export default function App() {
-  const [token, setToken] = useState(localStorage.getItem('admin_token'));
+  const [token, setToken] = useState(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const t = urlParams.get('token');
+    if (t) {
+        localStorage.setItem('admin_token', t);
+        window.history.replaceState({}, document.title, "/");
+        return t;
+    }
+    return localStorage.getItem('admin_token');
+  });
   const [user, setUser] = useState(null);
   const [analytics, setAnalytics] = useState(null);
   const [data, setData] = useState({ users: [], restaurants: [], orders: [], disputes: [], auditLogs: [], payments: [], restaurantStats: {} });
@@ -283,11 +193,22 @@ export default function App() {
     }
   }, [token, loadAllData]);
 
-  // Polling for real-time updates
+  // Polling & WebSockets for real-time updates
   useEffect(() => {
     if (token) {
-        const interval = setInterval(loadAllData, 30000); // Poll every 30 seconds
-        return () => clearInterval(interval);
+        // Real-time WebSocket
+        const ws = new WebSocket(`ws://localhost:8002/ws/orders/admin`);
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            console.log("Global admin update:", data);
+            loadAllData();
+        };
+
+        const interval = setInterval(loadAllData, 60000); // Polling fallback
+        return () => {
+            ws.close();
+            clearInterval(interval);
+        }
     }
   }, [token, loadAllData]);
 
@@ -310,7 +231,7 @@ export default function App() {
   return (
     <Layout activeTab={activeTab} onTabChange={setActiveTab} user={user} onLogout={logout}>
         {activeTab === 'dashboard' && <Dashboard analytics={analytics} data={data} onRefresh={loadAllData} />}
-        {activeTab === 'merchants' && <Merchants restaurants={data.restaurants} stats={data.restaurantStats} onRefresh={() => loadAllData()} />}
+        {activeTab === 'merchants' && <Merchants restaurants={data.restaurants} users={data.users} stats={data.restaurantStats} onRefresh={() => loadAllData()} />}
         {activeTab === 'users' && <Users users={data.users} orders={data.orders} onRefresh={() => loadAllData()} />}
         {activeTab === 'riders' && <Riders users={data.users} onRefresh={() => loadAllData()} />}
         {activeTab === 'orders' && <Orders orders={data.orders} restaurants={data.restaurants} users={data.users} />}
@@ -319,6 +240,7 @@ export default function App() {
         {activeTab === 'reports' && <SalesReports analytics={analytics} data={data} />}
         {activeTab === 'audit' && <AuditLogs logs={data.auditLogs} />}
         {activeTab === 'settings' && <Settings user={user} onRefresh={loadAllData} />}
+        <AIChat />
     </Layout>
   );
 }

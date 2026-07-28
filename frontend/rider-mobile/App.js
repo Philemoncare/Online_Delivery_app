@@ -98,6 +98,11 @@ export default function App() {
     try {
       const res = await authApi.login(email, password);
       setToken(res.data.access_token);
+
+      // Unified Auth Check
+      if (res.data.redirect_url.includes('pending')) {
+          setView('verification');
+      }
     } catch (e) { Alert.alert("Access Denied", "Identity verification failed. Please check your credentials."); }
     finally { setLoading(false); }
   };
@@ -134,7 +139,7 @@ export default function App() {
       const res = await deliveryApi.updateStatus(currentDelivery.delivery_id, status, 5.61, -0.17, token);
       setCurrentDelivery(res.data);
       if (status === 'DELIVERED') {
-        Alert.alert("Mission Accomplished", `GHS 15.00 credited to your fleet wallet.`);
+        Alert.alert("Mission Accomplished", `GH₵ 15.00 credited to your fleet wallet.`);
         fetchHistory();
         setView('radar');
         fetchAvailable();
@@ -205,6 +210,34 @@ export default function App() {
     </View>
   );
 
+  if (view === 'verification') return (
+    <View style={styles.authContainer}>
+        <StatusBar style="light" />
+        <View style={styles.heroGlow} />
+
+        <View style={{ alignItems: 'center', marginBottom: 40 }}>
+            <Text style={{ fontSize: 64 }}>🛡️</Text>
+            <Text style={[styles.authBrand, { marginTop: 20 }]}>Verification <Text style={{ color: '#FFF' }}>Pending</Text></Text>
+            <Text style={styles.authTagline}>Secure Identification Review</Text>
+        </View>
+
+        <GlassCard style={{ padding: 32, alignItems: 'center' }}>
+            <Text style={{ color: COLORS.text, fontWeight: '700', textAlign: 'center', lineHeight: 22, marginBottom: 20 }}>
+                Commander, your operative profile is currently under review by fDA HQ.
+            </Text>
+            <Text style={{ color: COLORS.textMuted, textAlign: 'center', fontSize: 13, marginBottom: 30 }}>
+                We are validating your vehicle information and driver's license. This typically takes 24-48 hours.
+            </Text>
+
+            <View style={{ width: '100%', height: 1, backgroundColor: COLORS.glassBorder, marginBottom: 30 }} />
+
+            <TouchableOpacity style={[styles.primaryBtn, { width: '100%' }]} onPress={handleLogout}>
+                <Text style={styles.btnText}>Sign Out</Text>
+            </TouchableOpacity>
+        </GlassCard>
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="light" />
@@ -237,7 +270,7 @@ export default function App() {
             <View style={styles.statsBar}>
                 <View style={styles.statBox}>
                     <Text style={styles.statLabel}>TODAY</Text>
-                    <Text style={styles.statValue}>GHS {earnings.earnings.toFixed(2)}</Text>
+                    <Text style={styles.statValue}>GH₵ {earnings.earnings.toFixed(2)}</Text>
                 </View>
                 <View style={styles.statBox}>
                     <Text style={styles.statLabel}>JOBS</Text>
@@ -260,7 +293,7 @@ export default function App() {
                         <Text style={styles.jobId}>TASK #{item.order_id.substring(0, 8)}</Text>
                         <View style={styles.hotBadge}><Text style={{ color: '#FFF', fontSize: 8, fontWeight: '900' }}>HOT</Text></View>
                     </View>
-                    <Text style={styles.jobPrice}>GHS 15.00</Text>
+                    <Text style={styles.jobPrice}>GH₵ 15.00</Text>
                     <View style={{ flexDirection: 'row', marginTop: 12, gap: 12 }}>
                         <View style={styles.jobInfoTag}>
                             <Text style={styles.tagText}>📍 2.4 KM</Text>
@@ -355,7 +388,7 @@ export default function App() {
                         <Text style={{ fontSize: 32 }}>💰</Text>
                     </View>
                     <Text style={styles.earningLabel}>AVAILABLE BALANCE</Text>
-                    <Text style={styles.earningValue}>GHS {earnings.earnings.toFixed(2)}</Text>
+                    <Text style={styles.earningValue}>GH₵ {earnings.earnings.toFixed(2)}</Text>
                     <View style={{ flexDirection: 'row', gap: 16, marginTop: 10 }}>
                         <View style={styles.pill}><Text style={styles.pillText}>{earnings.count} DELIVERIES</Text></View>
                         <View style={styles.pill}><Text style={styles.pillText}>84h ONLINE</Text></View>
@@ -375,7 +408,7 @@ export default function App() {
                                 <Text style={{ color: COLORS.text, fontWeight: '700', fontSize: 14 }}>Delivery Payout</Text>
                                 <Text style={{ color: COLORS.textMuted, fontSize: 11 }}>Order #55219 • 2h ago</Text>
                             </View>
-                            <Text style={{ color: COLORS.success, fontWeight: '900' }}>+GHS 15.00</Text>
+                            <Text style={{ color: COLORS.success, fontWeight: '900' }}>+GH₵ 15.00</Text>
                         </View>
                     ))}
                 </ScrollView>

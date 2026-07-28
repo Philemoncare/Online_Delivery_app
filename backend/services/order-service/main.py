@@ -1,18 +1,56 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from typing import List, Optional
+from typing import List, Optional, Dict
 from uuid import UUID
 from datetime import datetime, timedelta
 
 import httpx
 import os
+import json
 from celery import Celery
 import models, schemas, database
 from shared_security import verify_token
 
 app = FastAPI(title="fDA Order Service", version="1.0.0")
+
+# WebSocket Manager for Order Tracking
+class OrderConnectionManager:
+    def __init__(self):
+        self.active_connections: Dict[str, List[WebSocket]] = {}
+
+    async def connect(self, websocket: WebSocket, group: str):
+        await websocket.accept()
+        if group not in self.active_connections:
+            self.active_connections[group] = []
+        self.active_connections[group].append(websocket)
+
+    def disconnect(self, websocket: WebSocket, group: str):
+        if group in self.active_connections:
+            self.active_connections[group].remove(websocket)
+
+    async def send_personal_message(self, message: dict, websocket: WebSocket):
+        await websocket.send_json(message)
+
+    async def broadcast(self, message: dict, group: str):
+        if group in self.active_connections:
+            for connection in self.active_connections[group]:
+                try:
+                    await connection.send_json(message)
+                except Exception:
+                    pass
+
+manager = OrderConnectionManager()
+
+@app.websocket("/ws/orders/{group}")
+async def order_websocket_endpoint(websocket: WebSocket, group: str):
+    await manager.connect(websocket, group)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(websocket, group)
 
 @app.get("/")
 def root():
@@ -170,6 +208,18 @@ async def update_order_status(id: UUID, status_update: schemas.OrderStatusUpdate
 
     db.commit()
     db.refresh(db_order)
+
+    # Broadcast via WebSockets
+    status_msg = {
+        "order_id": str(id),
+        "status": status_update.status,
+        "customer_id": str(db_order.customer_id),
+        "restaurant_id": str(db_order.restaurant_id)
+    }
+    await manager.broadcast(status_msg, f"order_{id}")
+    await manager.broadcast(status_msg, f"customer_{db_order.customer_id}")
+    await manager.broadcast(status_msg, f"vendor_{db_order.restaurant_id}")
+    await manager.broadcast(status_msg, "admin")
 
     # 9. Trigger Notification (Sequence Diagram Step 9 & 10)
     try:

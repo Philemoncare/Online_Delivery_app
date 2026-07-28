@@ -107,7 +107,7 @@ const Orders = ({ orders, restaurants, users }) => {
                             </td>
                             <td style={tdStyle}>
                                 <div style={{ fontSize: '11px', fontWeight: '800', color: theme.textMuted, textTransform: 'uppercase' }}>Grand Total</div>
-                                <div style={{ fontWeight: '900', color: theme.text, fontSize: '16px' }}>GHS {o.total_amount.toFixed(2)}</div>
+                                <div style={{ fontWeight: '900', color: theme.text, fontSize: '16px' }}>GH₵ {o.total_amount.toFixed(2)}</div>
                             </td>
                             <td style={tdStyle}>
                                 <div style={{ fontSize: '12px', fontWeight: '600' }}>{new Date(o.placed_at).toLocaleDateString()}</div>
@@ -178,7 +178,7 @@ const Orders = ({ orders, restaurants, users }) => {
                                     <Button label="Close" variant="secondary" onClick={() => setSelectedOrder(null)} style={{ flex: 1 }} />
                                     <div style={{ flex: 1, textAlign: 'right' }}>
                                         <div style={labelStyle}>Total Payout</div>
-                                        <div style={{ fontSize: '24px', fontWeight: '900', color: theme.primary }}>GHS {selectedOrder.total_amount.toFixed(2)}</div>
+                                        <div style={{ fontSize: '24px', fontWeight: '900', color: theme.primary }}>GH₵ {selectedOrder.total_amount.toFixed(2)}</div>
                                     </div>
                                 </div>
                             </div>

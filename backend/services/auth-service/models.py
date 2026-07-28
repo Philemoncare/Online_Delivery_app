@@ -1,5 +1,4 @@
-from sqlalchemy import Column, String, Enum, DateTime, Text, Numeric
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, String, Enum, DateTime, Text, Numeric, Integer, Boolean
 from sqlalchemy.sql import func
 import uuid
 import enum
@@ -23,10 +22,17 @@ class User(Base):
     profile_picture_url = Column(String(500), nullable=True)
     wallet_balance = Column(Numeric(10, 2), default=0.00)
     address = Column(Text, nullable=True)
-    is_suspended = Column(Numeric(1, 0), default=0) # SQLite doesn't have Boolean always working as expected, using 0/1
+
+    # Unified Auth Additions
+    onboarding_step = Column(Integer, default=1) # 1-7 for Vendors, 1-3 for Riders
+    verification_status = Column(String(20), default="APPROVED") # PENDING, APPROVED, REJECTED
+    is_super_admin = Column(Boolean, default=False)
+    google_id = Column(String(255), nullable=True)
+
+    is_suspended = Column(Boolean, default=False)
     notification_preferences = Column(Text, nullable=True) # Stored as JSON string
     preferred_language = Column(String(10), default="en")
-    profile_visibility = Column(Numeric(1, 0), default=1)
+    profile_visibility = Column(Boolean, default=True)
     vehicle_info = Column(String(255), nullable=True)
     id_details = Column(String(255), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

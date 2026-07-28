@@ -59,8 +59,8 @@ const SalesReports = ({ orders, stats, menu }) => {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }}>
-                <StatCard title="Gross Revenue" value={`GHS ${metrics.revenue?.toLocaleString() || '0.00'}`} icon="💰" color={theme.success} trend={12.5} />
-                <StatCard title="Avg Basket Value" value={`GHS ${metrics.avgValue.toFixed(2)}`} icon="📊" color={theme.primary} trend={-2.1} />
+                <StatCard title="Gross Revenue" value={`GH₵ ${metrics.revenue?.toLocaleString() || '0.00'}`} icon="💰" color={theme.success} trend={12.5} />
+                <StatCard title="Avg Basket Value" value={`GH₵ ${metrics.avgValue.toFixed(2)}`} icon="📊" color={theme.primary} trend={-2.1} />
                 <StatCard title="Total Volume" value={metrics.orders} icon="📦" color={theme.accent} trend={8.4} />
                 <StatCard title="Kitchen Success" value={`${metrics.successRate}%`} icon="🎯" color="#6366F1" />
             </div>
@@ -101,7 +101,7 @@ const SalesReports = ({ orders, stats, menu }) => {
                                             <div style={{ fontSize: '12px', color: theme.textMuted }}>{item.count} units distributed</div>
                                         </div>
                                     </div>
-                                    <div style={{ fontWeight: '900', color: theme.primary }}>GHS {menuItem?.price || '0.00'}</div>
+                                    <div style={{ fontWeight: '900', color: theme.primary }}>GH₵ {menuItem?.price || '0.00'}</div>
                                 </div>
                             );
                         })}

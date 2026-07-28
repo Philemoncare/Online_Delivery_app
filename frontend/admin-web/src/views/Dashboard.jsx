@@ -26,10 +26,10 @@ const Dashboard = ({ analytics, data, onRefresh }) => {
     };
 
     const stats = [
-        { title: 'Gross Revenue', value: `GHS ${analytics?.total_revenue?.toLocaleString(undefined, {minimumFractionDigits: 2}) || '0.00'}`, icon: '💰', color: theme.success },
-        { title: 'Net Platform Fee', value: `GHS ${analytics?.platform_earnings?.toLocaleString(undefined, {minimumFractionDigits: 2}) || '0.00'}`, subtitle: '10% Revenue Share', icon: '🏦', color: theme.primary },
+        { title: 'Gross Revenue', value: `GH₵ ${analytics?.total_revenue?.toLocaleString(undefined, {minimumFractionDigits: 2}) || '0.00'}`, icon: '💰', color: theme.success },
+        { title: 'Net Platform Fee', value: `GH₵ ${analytics?.platform_earnings?.toLocaleString(undefined, {minimumFractionDigits: 2}) || '0.00'}`, subtitle: '10% Revenue Share', icon: '🏦', color: theme.primary },
         { title: 'Successful Orders', value: analytics?.total_orders || '0', icon: '📦', color: theme.accent },
-        { title: 'Avg. Order Basket', value: `GHS ${(analytics?.total_orders > 0 ? analytics.total_revenue / analytics.total_orders : 0).toFixed(2)}`, icon: '🛒', color: theme.warning }
+        { title: 'Avg. Order Basket', value: `GH₵ ${(analytics?.total_orders > 0 ? analytics.total_revenue / analytics.total_orders : 0).toFixed(2)}`, icon: '🛒', color: theme.warning }
     ];
 
     const orderStats = [
@@ -61,11 +61,11 @@ const Dashboard = ({ analytics, data, onRefresh }) => {
                 </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px' }} className="stat-grid">
                 {stats.map((s, i) => <StatCard key={i} {...s} />)}
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }} className="stat-grid">
                 {orderStats.map((s, i) => (
                     <Card key={i}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -79,7 +79,7 @@ const Dashboard = ({ analytics, data, onRefresh }) => {
                 ))}
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }} className="card-grid">
                 <Card title="Revenue Trend (Last 12 Days)">
                     <div style={{ height: '300px', display: 'flex', alignItems: 'flex-end', gap: '12px', padding: '20px 10px 10px 10px' }}>
                         {analytics?.sales_trend?.length > 0 ? analytics.sales_trend.map((d, i) => {
@@ -96,7 +96,7 @@ const Dashboard = ({ analytics, data, onRefresh }) => {
                                             transition: 'height 0.5s ease',
                                             cursor: 'pointer'
                                         }}
-                                        title={`GHS ${d.amount}`}
+                                        title={`GH₵ ${d.amount}`}
                                     />
                                     <span style={{ marginTop: '12px', fontSize: '10px', fontWeight: '700', color: theme.textMuted }}>{d.date.split('-')[2]}</span>
                                 </div>
@@ -113,14 +113,14 @@ const Dashboard = ({ analytics, data, onRefresh }) => {
                                     <div style={{ fontWeight: '800', fontSize: '14px' }}>{data.restaurants.find(res => res.restaurant_id === r.id)?.name || 'Unknown Merchant'}</div>
                                     <div style={{ fontSize: '12px', color: theme.textMuted }}>{r.orders} orders</div>
                                 </div>
-                                <div style={{ fontWeight: '900', color: theme.primary }}>GHS {r.revenue.toLocaleString()}</div>
+                                <div style={{ fontWeight: '900', color: theme.primary }}>GH₵ {r.revenue.toLocaleString()}</div>
                             </div>
                         )) : <div style={{ color: theme.textMuted, textAlign: 'center', padding: '20px' }}>No merchants found</div>}
                     </div>
                 </Card>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }} className="card-grid">
                 <Card title="Popular Items Platform-wide">
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         {analytics?.popular_items?.length > 0 ? analytics.popular_items.map((item, i) => (
@@ -167,7 +167,7 @@ const Dashboard = ({ analytics, data, onRefresh }) => {
                                 <td style={tdStyle}>#{o.order_id.substring(0,8)}</td>
                                 <td style={tdStyle}>{data.restaurants.find(r => r.restaurant_id === o.restaurant_id)?.name || '---'}</td>
                                 <td style={tdStyle}>{data.users.find(u => u.user_id === o.customer_id)?.full_name || '---'}</td>
-                                <td style={tdStyle}>GHS {o.total_amount}</td>
+                                <td style={tdStyle}>GH₵ {o.total_amount}</td>
                                 <td style={tdStyle}><Badge status={o.status} /></td>
                                 <td style={tdStyle}>{new Date(o.placed_at).toLocaleTimeString()}</td>
                             </tr>

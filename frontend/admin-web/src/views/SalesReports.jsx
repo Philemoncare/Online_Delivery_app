@@ -51,24 +51,24 @@ const SalesReports = ({ analytics, data }) => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }}>
                 <Card>
                     <div style={labelStyle}>Gross Merchandise Volume</div>
-                    <div style={{ fontSize: '28px', fontWeight: '900', color: theme.text }}>GHS {totalRevenue.toLocaleString(undefined, {minimumFractionDigits: 2})}</div>
+                    <div style={{ fontSize: '28px', fontWeight: '900', color: theme.text }}>GH₵ {totalRevenue.toLocaleString(undefined, {minimumFractionDigits: 2})}</div>
                     <div style={{ fontSize: '12px', color: theme.success, marginTop: '8px', fontWeight: '800' }}>
                         <span style={{ marginRight: '4px' }}>▲</span> 12.5% vs Last Month
                     </div>
                 </Card>
                 <Card>
                     <div style={labelStyle}>Platform Earnings (10%)</div>
-                    <div style={{ fontSize: '28px', fontWeight: '900', color: theme.primary }}>GHS {platformEarnings.toLocaleString(undefined, {minimumFractionDigits: 2})}</div>
+                    <div style={{ fontSize: '28px', fontWeight: '900', color: theme.primary }}>GH₵ {platformEarnings.toLocaleString(undefined, {minimumFractionDigits: 2})}</div>
                     <div style={{ fontSize: '11px', color: theme.textMuted, marginTop: '8px', fontWeight: '600' }}>Total Commission Accrued</div>
                 </Card>
                 <Card>
                     <div style={labelStyle}>Merchant Settlements</div>
-                    <div style={{ fontSize: '28px', fontWeight: '900', color: theme.accent }}>GHS {vendorEarnings.toLocaleString(undefined, {minimumFractionDigits: 2})}</div>
+                    <div style={{ fontSize: '28px', fontWeight: '900', color: theme.accent }}>GH₵ {vendorEarnings.toLocaleString(undefined, {minimumFractionDigits: 2})}</div>
                     <div style={{ fontSize: '11px', color: theme.textMuted, marginTop: '8px', fontWeight: '600' }}>Net payable to vendors</div>
                 </Card>
                 <Card>
                     <div style={labelStyle}>Unit Economics</div>
-                    <div style={{ fontSize: '28px', fontWeight: '900', color: theme.text }}>GHS {avgOrderValue.toFixed(2)}</div>
+                    <div style={{ fontSize: '28px', fontWeight: '900', color: theme.text }}>GH₵ {avgOrderValue.toFixed(2)}</div>
                     <div style={{ fontSize: '11px', color: theme.textMuted, marginTop: '8px', fontWeight: '600' }}>Average Transaction Value</div>
                 </Card>
             </div>
@@ -90,7 +90,7 @@ const SalesReports = ({ analytics, data }) => {
                                             transition: 'height 0.5s ease',
                                             boxShadow: '0 4px 12px rgba(99, 102, 241, 0.2)'
                                         }}
-                                        title={`GHS ${d.amount}`}
+                                        title={`GH₵ ${d.amount}`}
                                     />
                                     <span style={{ marginTop: '12px', fontSize: '10px', fontWeight: '700', color: theme.textMuted }}>{d.date.split('-')[2]}</span>
                                 </div>
@@ -111,7 +111,7 @@ const SalesReports = ({ analytics, data }) => {
                                     <div style={{ fontWeight: '800', fontSize: '14px' }}>{data.restaurants.find(res => res.restaurant_id === r.id)?.name || 'Merchant'}</div>
                                     <div style={{ fontSize: '11px', color: theme.textMuted, fontWeight: '600' }}>{r.orders} successful orders</div>
                                 </div>
-                                <div style={{ fontWeight: '900', color: theme.primary, fontSize: '15px' }}>GHS {r.revenue.toLocaleString()}</div>
+                                <div style={{ fontWeight: '900', color: theme.primary, fontSize: '15px' }}>GH₵ {r.revenue.toLocaleString()}</div>
                             </div>
                         )) : <div style={{ color: theme.textMuted, textAlign: 'center', padding: '20px' }}>No revenue data</div>}
                     </div>
@@ -135,9 +135,9 @@ const SalesReports = ({ analytics, data }) => {
                                 <td style={tdStyle}>
                                     <div style={{fontWeight: '700'}}>{data.restaurants.find(r => r.restaurant_id === data.orders.find(o => o.order_id === p.order_id)?.restaurant_id)?.name || '---'}</div>
                                 </td>
-                                <td style={tdStyle}><span style={{fontWeight: '800'}}>GHS {p.amount.toFixed(2)}</span></td>
-                                <td style={tdStyle}><span style={{color: theme.danger, fontWeight: '700'}}>- GHS {comm.toFixed(2)}</span></td>
-                                <td style={tdStyle}><span style={{color: theme.success, fontWeight: '900'}}>GHS {net.toFixed(2)}</span></td>
+                                <td style={tdStyle}><span style={{fontWeight: '800'}}>GH₵ {p.amount.toFixed(2)}</span></td>
+                                <td style={tdStyle}><span style={{color: theme.danger, fontWeight: '700'}}>- GH₵ {comm.toFixed(2)}</span></td>
+                                <td style={tdStyle}><span style={{color: theme.success, fontWeight: '900'}}>GH₵ {net.toFixed(2)}</span></td>
                                 <td style={tdStyle}><Badge status={p.status} /></td>
                                 <td style={tdStyle}>
                                     <div style={{ fontSize: '13px', fontWeight: '600' }}>{new Date(p.paid_at || Date.now()).toLocaleDateString()}</div>
