@@ -420,7 +420,7 @@ const HomeView = ({ setView, restaurants, featuredItems, categories }) => {
     );
 };
 
-const RestaurantsView = ({ restaurants, setView, onSync, initialSearch = '' }) => {
+const RestaurantsView = ({ restaurants, setView, onSync, initialSearch = '', notification, showNotify }) => {
     const [search, setSearch] = useState(initialSearch);
     const [category, setCategory] = useState('All');
     const [sortBy, setSortBy] = useState('rating');
@@ -635,7 +635,7 @@ const RestaurantProfileView = ({ id, setView, onAddToCart, restaurant, setRestau
     );
 };
 
-const CartView = ({ cart, onRemove, setView }) => {
+const CartView = ({ cart, onRemove, setView, notification, showNotify }) => {
     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const deliveryFee = 15;
     const serviceFee = 5;
@@ -747,28 +747,24 @@ const CartView = ({ cart, onRemove, setView }) => {
     );
 };
 
-const CheckoutView = ({ cart, setView, onOrderSuccess }) => {
+const CheckoutView = ({ cart, setView, onOrderSuccess, notification, showNotify, user }) => {
     const [address, setAddress] = useState('');
-    const [phone, setPhone] = useState('');
+    const [phone, setPhone] = useState(user?.phone || '');
+    const [fullName, setFullName] = useState(user?.full_name || '');
+    const [email, setEmail] = useState(user?.email || '');
     const [loading, setLoading] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState('momo');
-    const [notification, setNotification] = useState(null);
     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const total = subtotal + 15 + 5;
 
-    const showNotify = (text, type = 'success') => {
-        setNotification({ text, type });
-        setTimeout(() => setNotification(null), 4000);
-    };
-
     const handlePlaceOrder = async () => {
-        if (!address || !phone) return showNotify("Please establish delivery coordinates.", "error");
+        if (!address || !phone || !fullName) return showNotify("Please establish all delivery coordinates and identity.", "error");
         setLoading(true);
         try {
             const orderData = {
                 restaurant_id: cart[0].restaurant_id,
                 total_amount: total,
-                delivery_address: address,
+                delivery_address: `${fullName} | ${address}`,
                 geo_lat: 5.60,
                 geo_lng: -0.18,
                 items: cart.map(i => ({
@@ -809,10 +805,18 @@ const CheckoutView = ({ cart, setView, onOrderSuccess }) => {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 450px', gap: '60px', alignItems: 'flex-start', marginBottom: '120px' }} className="checkout-grid">
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
                         <div style={{ backgroundColor: '#0A0A0A', padding: '50px', borderRadius: '50px', border: '1px solid #1A1A1A' }}>
+                            <h3 style={{ color: '#FFF', marginBottom: '40px', fontSize: '28px', fontWeight: '900', letterSpacing: '-1px' }}>Recipient Identity</h3>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                <Input label="Full Name" placeholder="Philemon..." value={fullName} onChange={e => setFullName(e.target.value)} icon={<User size={22}/>} />
+                                <Input label="Email Confirmation" placeholder="email@example.com" value={email} onChange={e => setEmail(e.target.value)} icon={<Mail size={22}/>} />
+                                <Input label="Contact Terminal" placeholder="+233..." value={phone} onChange={e => setPhone(e.target.value)} icon={<Phone size={22}/>} />
+                            </div>
+                        </div>
+
+                        <div style={{ backgroundColor: '#0A0A0A', padding: '50px', borderRadius: '50px', border: '1px solid #1A1A1A' }}>
                             <h3 style={{ color: '#FFF', marginBottom: '40px', fontSize: '28px', fontWeight: '900', letterSpacing: '-1px' }}>Delivery Address</h3>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                 <Input label="Digital Address / Location" placeholder="e.g. GA-123-4567, Osu, Accra" value={address} onChange={e => setAddress(e.target.value)} icon={<MapPin size={22}/>} />
-                                <Input label="Contact Terminal" placeholder="+233..." value={phone} onChange={e => setPhone(e.target.value)} icon={<Phone size={22}/>} />
                             </div>
                         </div>
 
@@ -876,7 +880,7 @@ const CheckoutView = ({ cart, setView, onOrderSuccess }) => {
     );
 };
 
-const ProfileView = ({ user, showNotify }) => {
+const ProfileView = ({ user, setView, showNotify, notification }) => {
     const [orders, setOrders] = useState([]);
     const [activeTab, setActiveTab] = useState('orders');
     const [reviewing, setReviewing] = useState(null);
@@ -886,16 +890,17 @@ const ProfileView = ({ user, showNotify }) => {
 
     // Form states for settings
     const [profileForm, setProfileForm] = useState({
-        full_name: user.full_name,
-        email: user.email,
-        phone: user.phone || ''
+        full_name: user?.full_name || '',
+        email: user?.email || '',
+        phone: user?.phone || ''
     });
 
     const [addresses, setAddresses] = useState(() => {
-        try { return JSON.parse(user.address || '[]'); } catch(e) { return []; }
+        try { return JSON.parse(user?.address || '[]'); } catch(e) { return []; }
     });
 
     const loadOrders = async () => {
+        if (!user) return;
         try {
             const res = await orderApi.getOrders();
             setOrders(res.data.sort((a,b) => new Date(b.placed_at) - new Date(a.placed_at)));
@@ -903,6 +908,7 @@ const ProfileView = ({ user, showNotify }) => {
     };
 
     useEffect(() => {
+        if (!user) return;
         loadOrders();
         const ws = new WebSocket(`ws://localhost:8002/ws/orders/customer_${user.user_id}`);
         ws.onmessage = (event) => {
@@ -911,7 +917,13 @@ const ProfileView = ({ user, showNotify }) => {
             loadOrders();
         };
         return () => ws.close();
-    }, [user.user_id]);
+    }, [user?.user_id]);
+
+    if (!user) return (
+        <div style={{ height: '100vh', backgroundColor: '#000', color: '#FFF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            Authenticating...
+        </div>
+    );
 
     const handleProfileUpdate = async (e) => {
         e.preventDefault();
@@ -1061,6 +1073,36 @@ const ProfileView = ({ user, showNotify }) => {
                                 <Input label="Phone Terminal" value={profileForm.phone} onChange={e => setProfileForm({...profileForm, phone: e.target.value})} icon={<Phone size={18}/>} />
                                 <Button label={loading ? "Synchronizing..." : "Update Identity"} type="submit" style={{ marginTop: '20px', borderRadius: '50px' }} />
                             </form>
+                        ) : activeTab === 'payments' ? (
+                            <div style={{ animation: 'fadeInUp 0.4s' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '40px' }}>
+                                    <div style={{ padding: '30px', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: '32px', border: '1px solid #1A1A1A', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                                            <div style={{ width: '50px', height: '50px', backgroundColor: '#FFD70015', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFD700' }}>
+                                                <Smartphone size={24}/>
+                                            </div>
+                                            <div>
+                                                <div style={{ fontWeight: '800', color: '#FFF' }}>MTN Mobile Money</div>
+                                                <div style={{ fontSize: '13px', color: '#666' }}>Primary Wallet: {user.phone}</div>
+                                            </div>
+                                        </div>
+                                        <Badge color={theme.success}>Active</Badge>
+                                    </div>
+                                    <div style={{ padding: '30px', backgroundColor: 'rgba(255,255,255,0.01)', borderRadius: '32px', border: '1px solid #1A1A1A', display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: 0.5 }}>
+                                        <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                                            <div style={{ width: '50px', height: '50px', backgroundColor: '#FFF15', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF' }}>
+                                                <CreditCard size={24}/>
+                                            </div>
+                                            <div>
+                                                <div style={{ fontWeight: '800', color: '#FFF' }}>Visa ending in 4242</div>
+                                                <div style={{ fontSize: '13px', color: '#666' }}>Expired 12/24</div>
+                                            </div>
+                                        </div>
+                                        <Button label="Renew" variant="secondary" size="small" />
+                                    </div>
+                                </div>
+                                <Button label="Add New Payment Method" variant="secondary" style={{ borderRadius: '50px' }} icon={<Plus size={18}/>} />
+                            </div>
                         ) : activeTab === 'addresses' ? (
                             <div style={{ animation: 'fadeInUp 0.4s' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '40px' }}>
@@ -1475,7 +1517,15 @@ const RegisterView = ({ setAuthView }) => {
 // --- MAIN APP ---
 
 export default function App() {
-    const [view, setView] = useState('home');
+    const [view, setView] = useState(() => {
+        const hash = window.location.hash.replace('#', '');
+        if (hash) {
+            try { return JSON.parse(decodeURIComponent(hash)); }
+            catch(e) { return hash; }
+        }
+        return 'home';
+    });
+
     const [restaurants, setRestaurants] = useState([]);
     const [featuredItems, setFeaturedItems] = useState([]);
     const [categories, setCategories] = useState([]);
@@ -1485,6 +1535,30 @@ export default function App() {
     const [cart, setCart] = useState([]);
     const [activeRestaurant, setActiveRestaurant] = useState(null);
     const [newsletterEmail, setNewsletterEmail] = useState('');
+    const [notification, setNotification] = useState(null);
+
+    const showNotify = (text, type = 'success') => {
+        setNotification({ text, type });
+        setTimeout(() => setNotification(null), 4000);
+    };
+
+    useEffect(() => {
+        const handleHashChange = () => {
+            const hash = window.location.hash.replace('#', '');
+            if (hash) {
+                try { setView(JSON.parse(decodeURIComponent(hash))); }
+                catch(e) { setView(hash); }
+            } else {
+                setView('home');
+            }
+        };
+        window.addEventListener('hashchange', handleHashChange);
+        return () => window.removeEventListener('hashchange', handleHashChange);
+    }, []);
+
+    const handleSetView = (v) => {
+        window.location.hash = encodeURIComponent(JSON.stringify(v));
+    };
 
     const init = async () => {
         setLoading(true);
@@ -1571,7 +1645,7 @@ export default function App() {
             {view !== 'login' && view !== 'register' && (
                 <Navbar
                     user={user}
-                    setView={setView}
+                    setView={handleSetView}
                     currentView={typeof view === 'string' ? view : view.type}
                     cartCount={cart.reduce((s, i) => s + i.quantity, 0)}
                 />
@@ -1582,18 +1656,18 @@ export default function App() {
                     key={typeof view === 'string' ? view : view.type + (view.id || view.search || '')}
                     variants={fadeInUp} initial="initial" animate="animate" exit="exit"
                 >
-                    {view === 'home' && <HomeView setView={setView} restaurants={restaurants} featuredItems={featuredItems} categories={categories} />}
+                    {view === 'home' && <HomeView setView={handleSetView} restaurants={restaurants} featuredItems={featuredItems} categories={categories} />}
                     {(view === 'restaurants' || (typeof view === 'object' && view.type === 'restaurants')) && (
-                        <RestaurantsView restaurants={restaurants} setView={setView} onSync={init} initialSearch={typeof view === 'object' ? view.search : ''} />
+                        <RestaurantsView restaurants={restaurants} setView={handleSetView} onSync={init} initialSearch={typeof view === 'object' ? view.search : ''} notification={notification} showNotify={showNotify} />
                     )}
                     {typeof view === 'object' && view.type === 'restaurant-profile' && (
-                        <RestaurantProfileView id={view.id} setView={setView} onAddToCart={onAddToCart} restaurant={activeRestaurant} setRestaurant={setActiveRestaurant} />
+                        <RestaurantProfileView id={view.id} setView={handleSetView} onAddToCart={onAddToCart} restaurant={activeRestaurant} setRestaurant={setActiveRestaurant} />
                     )}
-                    {view === 'cart' && <CartView cart={cart} onRemove={(id) => setCart(cart.filter(i => i.item_id !== id))} setView={setView} />}
-                    {view === 'checkout' && <CheckoutView cart={cart} setView={setView} onOrderSuccess={() => setCart([])} />}
-                    {view === 'profile' && <ProfileView user={user} setView={setView} showNotify={showNotify} />}
-                    {view === 'login' && <LoginView setAuthView={setView} onLogin={(u) => { setUser(u); setView('home'); }} />}
-                    {view === 'register' && <RegisterView setAuthView={setView} />}
+                    {view === 'cart' && <CartView cart={cart} onRemove={(id) => setCart(cart.filter(i => i.item_id !== id))} setView={handleSetView} notification={notification} showNotify={showNotify} />}
+                    {view === 'checkout' && <CheckoutView cart={cart} setView={handleSetView} onOrderSuccess={() => setCart([])} notification={notification} showNotify={showNotify} user={user} />}
+                    {view === 'profile' && <ProfileView user={user} setView={handleSetView} showNotify={showNotify} notification={notification} />}
+                    {view === 'login' && <LoginView setAuthView={handleSetView} onLogin={(u) => { setUser(u); handleSetView('home'); }} />}
+                    {view === 'register' && <RegisterView setAuthView={handleSetView} />}
     {/* Informational Views */}
     {view === 'aboutus' && (
         <div style={{ backgroundColor: '#000', minHeight: '100vh', paddingTop: '150px' }}>
