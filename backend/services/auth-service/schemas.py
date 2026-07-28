@@ -17,6 +17,7 @@ class UserBase(BaseModel):
     profile_visibility: Optional[bool] = True
     vehicle_info: Optional[str] = None
     id_details: Optional[str] = None
+    payment_methods: Optional[str] = None
 
 class UserCreate(UserBase):
     password: str

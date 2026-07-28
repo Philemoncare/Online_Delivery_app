@@ -35,6 +35,7 @@ class User(Base):
     profile_visibility = Column(Boolean, default=True)
     vehicle_info = Column(String(255), nullable=True)
     id_details = Column(String(255), nullable=True)
+    payment_methods = Column(Text, nullable=True) # Stored as JSON string
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class Transaction(Base):

@@ -880,7 +880,7 @@ const CheckoutView = ({ cart, setView, onOrderSuccess, notification, showNotify,
     );
 };
 
-const ProfileView = ({ user, setView, showNotify, notification }) => {
+const ProfileView = ({ user, setView, showNotify, notification, onUpdate }) => {
     const [orders, setOrders] = useState([]);
     const [activeTab, setActiveTab] = useState('orders');
     const [reviewing, setReviewing] = useState(null);
@@ -889,6 +889,7 @@ const ProfileView = ({ user, setView, showNotify, notification }) => {
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [paymentType, setPaymentType] = useState('momo');
 
     // Form states for settings
     const [profileForm, setProfileForm] = useState({
@@ -901,6 +902,10 @@ const ProfileView = ({ user, setView, showNotify, notification }) => {
         try { return JSON.parse(user?.address || '[]'); } catch(e) { return []; }
     });
 
+    const [paymentMethods, setPaymentMethods] = useState(() => {
+        try { return JSON.parse(user?.payment_methods || '[]'); } catch(e) { return []; }
+    });
+
     const handleImageUpload = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -909,7 +914,7 @@ const ProfileView = ({ user, setView, showNotify, notification }) => {
             const res = await authApi.uploadImage(file);
             await authApi.updateMe({ profile_picture_url: res.data.url });
             showNotify("Identity image synchronized.");
-            window.location.reload(); // Refresh to update all instances
+            onUpdate();
         } catch (err) {
             showNotify("Image sync failed.", "error");
         } finally {
@@ -949,6 +954,7 @@ const ProfileView = ({ user, setView, showNotify, notification }) => {
         try {
             await authApi.updateMe(profileForm);
             showNotify("Identity synchronization complete.");
+            onUpdate();
         } catch (e) { showNotify("Failed to update profile", "error"); }
         finally { setLoading(false); }
     };
@@ -960,7 +966,31 @@ const ProfileView = ({ user, setView, showNotify, notification }) => {
             await authApi.updateMe({ address: JSON.stringify(updated) });
             setAddresses(updated);
             showNotify("New coordinate established.");
+            onUpdate();
         } catch (e) { showNotify("Failed to save address", "error"); }
+        finally { setLoading(false); }
+    };
+
+    const handleAddPayment = async (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const newMethod = {
+            id: Date.now(),
+            type: paymentType,
+            provider: fd.get('provider'),
+            number: fd.get('number'),
+            expiry: fd.get('expiry'),
+            name: fd.get('card_name')
+        };
+        const updated = [...paymentMethods, newMethod];
+        setLoading(true);
+        try {
+            await authApi.updateMe({ payment_methods: JSON.stringify(updated) });
+            setPaymentMethods(updated);
+            showNotify("Payment coordinate established.");
+            setShowPaymentModal(false);
+            onUpdate();
+        } catch (e) { showNotify("Failed to link account", "error"); }
         finally { setLoading(false); }
     };
 
@@ -1106,30 +1136,36 @@ const ProfileView = ({ user, setView, showNotify, notification }) => {
                         ) : activeTab === 'payments' ? (
                             <div style={{ animation: 'fadeInUp 0.4s' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '40px' }}>
-                                    <div style={{ padding: '30px', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: '32px', border: '1px solid #1A1A1A', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-                                            <div style={{ width: '50px', height: '50px', backgroundColor: '#FFD70015', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFD700' }}>
-                                                <Smartphone size={24}/>
+                                    {paymentMethods.length === 0 ? (
+                                        <div style={{ padding: '30px', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: '32px', border: '1px solid #1A1A1A', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                                                <div style={{ width: '50px', height: '50px', backgroundColor: '#FFD70015', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFD700' }}>
+                                                    <Smartphone size={24}/>
+                                                </div>
+                                                <div>
+                                                    <div style={{ fontWeight: '800', color: '#FFF' }}>MTN Mobile Money</div>
+                                                    <div style={{ fontSize: '13px', color: '#666' }}>Primary Wallet: {user.phone}</div>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <div style={{ fontWeight: '800', color: '#FFF' }}>MTN Mobile Money</div>
-                                                <div style={{ fontSize: '13px', color: '#666' }}>Primary Wallet: {user.phone}</div>
-                                            </div>
+                                            <Badge color={theme.success}>Active</Badge>
                                         </div>
-                                        <Badge color={theme.success}>Active</Badge>
-                                    </div>
-                                    <div style={{ padding: '30px', backgroundColor: 'rgba(255,255,255,0.01)', borderRadius: '32px', border: '1px solid #1A1A1A', display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: 0.5 }}>
-                                        <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-                                            <div style={{ width: '50px', height: '50px', backgroundColor: '#FFF15', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF' }}>
-                                                <CreditCard size={24}/>
+                                    ) : paymentMethods.map(pm => (
+                                        <div key={pm.id} style={{ padding: '30px', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: '32px', border: '1px solid #1A1A1A', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                                                <div style={{ width: '50px', height: '50px', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: theme.primary }}>
+                                                    {pm.type === 'momo' ? <Smartphone size={24}/> : <CreditCard size={24}/>}
+                                                </div>
+                                                <div>
+                                                    <div style={{ fontWeight: '800', color: '#FFF' }}>{pm.provider} {pm.type === 'card' && `ending in ${pm.number.slice(-4)}`}</div>
+                                                    <div style={{ fontSize: '13px', color: '#666' }}>{pm.type === 'momo' ? `Wallet: ${pm.number}` : `Expires: ${pm.expiry}`}</div>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <div style={{ fontWeight: '800', color: '#FFF' }}>Visa ending in 4242</div>
-                                                <div style={{ fontSize: '13px', color: '#666' }}>Expired 12/24</div>
-                                            </div>
+                                            <button onClick={() => {
+                                                const filtered = paymentMethods.filter(p => p.id !== pm.id);
+                                                authApi.updateMe({ payment_methods: JSON.stringify(filtered) }).then(() => setPaymentMethods(filtered));
+                                            }} style={{ background: 'none', border: 'none', color: theme.danger, cursor: 'pointer', fontWeight: '800', fontSize: '12px' }}>REMOVE</button>
                                         </div>
-                                        <Button label="Renew" variant="secondary" size="small" />
-                                    </div>
+                                    ))}
                                 </div>
                                 <Button label="Add New Payment Method" variant="secondary" onClick={() => setShowPaymentModal(true)} style={{ borderRadius: '50px' }} icon={<Plus size={18}/>} />
                             </div>
@@ -1198,33 +1234,53 @@ const ProfileView = ({ user, setView, showNotify, notification }) => {
                         <h3 style={{ color: '#FFF', fontSize: '32px', fontWeight: '900', marginBottom: '15px', letterSpacing: '-1px' }}>Add Payment</h3>
                         <p style={{ color: '#666', marginBottom: '40px' }}>Securely link a new financial coordinate to your WorldPlate profile.</p>
 
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                        <form onSubmit={handleAddPayment} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                             <div style={{ display: 'flex', gap: '15px' }}>
-                                <div style={{ flex: 1, padding: '20px', borderRadius: '20px', border: `1px solid ${theme.primary}`, backgroundColor: `${theme.primary}10`, textAlign: 'center', cursor: 'pointer' }}>
-                                    <Smartphone size={32} color={theme.primary} style={{ marginInline: 'auto', marginBottom: '10px' }} />
-                                    <div style={{ color: '#FFF', fontWeight: '800', fontSize: '14px' }}>Mobile Money</div>
+                                <div
+                                    onClick={() => setPaymentType('momo')}
+                                    style={{ flex: 1, padding: '20px', borderRadius: '20px', border: `1px solid ${paymentType === 'momo' ? theme.primary : '#1A1A1A'}`, backgroundColor: paymentType === 'momo' ? `${theme.primary}10` : 'rgba(255,255,255,0.02)', textAlign: 'center', cursor: 'pointer' }}
+                                >
+                                    <Smartphone size={32} color={paymentType === 'momo' ? theme.primary : '#666'} style={{ marginInline: 'auto', marginBottom: '10px' }} />
+                                    <div style={{ color: paymentType === 'momo' ? '#FFF' : '#666', fontWeight: '800', fontSize: '14px' }}>Mobile Money</div>
                                 </div>
-                                <div style={{ flex: 1, padding: '20px', borderRadius: '20px', border: '1px solid #1A1A1A', backgroundColor: 'rgba(255,255,255,0.02)', textAlign: 'center', cursor: 'pointer', opacity: 0.5 }}>
-                                    <CreditCard size={32} color="#666" style={{ marginInline: 'auto', marginBottom: '10px' }} />
-                                    <div style={{ color: '#666', fontWeight: '800', fontSize: '14px' }}>Debit Card</div>
+                                <div
+                                    onClick={() => setPaymentType('card')}
+                                    style={{ flex: 1, padding: '20px', borderRadius: '20px', border: `1px solid ${paymentType === 'card' ? theme.primary : '#1A1A1A'}`, backgroundColor: paymentType === 'card' ? `${theme.primary}10` : 'rgba(255,255,255,0.02)', textAlign: 'center', cursor: 'pointer' }}
+                                >
+                                    <CreditCard size={32} color={paymentType === 'card' ? theme.primary : '#666'} style={{ marginInline: 'auto', marginBottom: '10px' }} />
+                                    <div style={{ color: paymentType === 'card' ? '#FFF' : '#666', fontWeight: '800', fontSize: '14px' }}>Debit Card</div>
                                 </div>
                             </div>
 
-                            <Input label="Wallet Number" placeholder="+233..." icon={<Phone size={18}/>} />
-                            <div style={{ marginBottom: '10px' }}>
-                                <label style={{ display: 'block', fontSize: '11px', fontWeight: '900', color: '#666', marginBottom: '10px', textTransform: 'uppercase' }}>Provider</label>
-                                <select style={{ width: '100%', padding: '15px', borderRadius: '15px', backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid #1A1A1A', color: '#FFF', fontWeight: '700', outline: 'none' }}>
-                                    <option>MTN Mobile Money</option>
-                                    <option>Vodafone Cash</option>
-                                    <option>AirtelTigo Money</option>
-                                </select>
-                            </div>
-                        </div>
+                            {paymentType === 'momo' ? (
+                                <>
+                                    <Input name="number" label="Wallet Number" placeholder="+233..." icon={<Phone size={18}/>} required />
+                                    <div style={{ marginBottom: '10px' }}>
+                                        <label style={{ display: 'block', fontSize: '11px', fontWeight: '900', color: '#666', marginBottom: '10px', textTransform: 'uppercase' }}>Provider</label>
+                                        <select name="provider" style={{ width: '100%', padding: '15px', borderRadius: '15px', backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid #1A1A1A', color: '#FFF', fontWeight: '700', outline: 'none' }}>
+                                            <option value="MTN Mobile Money">MTN Mobile Money</option>
+                                            <option value="Vodafone Cash">Vodafone Cash</option>
+                                            <option value="AirtelTigo Money">AirtelTigo Money</option>
+                                        </select>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <Input name="number" label="Card Number" placeholder="**** **** **** ****" icon={<CreditCard size={18}/>} required />
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                        <Input name="expiry" label="Expiry" placeholder="MM/YY" required />
+                                        <Input name="cvv" label="CVV" placeholder="***" type="password" required />
+                                    </div>
+                                    <Input name="card_name" label="Cardholder Name" placeholder="PHILEMON M..." required />
+                                    <input type="hidden" name="provider" value="Visa/Mastercard" />
+                                </>
+                            )}
 
-                        <div style={{ display: 'flex', gap: '20px', marginTop: '30px' }}>
-                            <Button label="Discard" variant="secondary" onClick={() => setShowPaymentModal(false)} style={{ flex: 1, borderRadius: '50px' }} />
-                            <Button label="Link Account" onClick={() => { showNotify("Payment coordinate established."); setShowPaymentModal(false); }} style={{ flex: 1, borderRadius: '50px' }} />
-                        </div>
+                            <div style={{ display: 'flex', gap: '20px', marginTop: '10px' }}>
+                                <Button label="Discard" variant="secondary" onClick={() => setShowPaymentModal(false)} type="button" style={{ flex: 1, borderRadius: '50px' }} />
+                                <Button label={loading ? "Linking..." : "Link Account"} type="submit" disabled={loading} style={{ flex: 1, borderRadius: '50px' }} />
+                            </div>
+                        </form>
                     </motion.div>
                 </div>
             )}
