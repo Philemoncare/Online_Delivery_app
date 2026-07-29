@@ -1,5 +1,4 @@
 from sqlalchemy import Column, String, Numeric, ForeignKey, DateTime, Enum, Integer, Text
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import uuid
@@ -20,10 +19,10 @@ class OrderStatus(str, enum.Enum):
 class Order(Base):
     __tablename__ = "orders"
 
-    order_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    customer_id = Column(UUID(as_uuid=True), nullable=False)
-    restaurant_id = Column(UUID(as_uuid=True), nullable=False)
-    rider_id = Column(UUID(as_uuid=True), nullable=True)
+    order_id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    customer_id = Column(String(36), nullable=False)
+    restaurant_id = Column(String(36), nullable=False)
+    rider_id = Column(String(36), nullable=True)
     status = Column(Enum(OrderStatus), default=OrderStatus.PENDING_PAYMENT)
     total_amount = Column(Numeric(10,2), nullable=False)
     delivery_address = Column(String, nullable=False)
@@ -37,9 +36,9 @@ class Order(Base):
 class OrderItem(Base):
     __tablename__ = "order_items"
 
-    order_item_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    order_id = Column(UUID(as_uuid=True), ForeignKey("orders.order_id", ondelete="CASCADE"), nullable=False)
-    item_id = Column(UUID(as_uuid=True), nullable=False)
+    order_item_id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    order_id = Column(String(36), ForeignKey("orders.order_id", ondelete="CASCADE"), nullable=False)
+    item_id = Column(String(36), nullable=False)
     quantity = Column(Integer, nullable=False)
     unit_price = Column(Numeric(10,2), nullable=False)
     cost_price = Column(Numeric(10,2), default=0.00)
@@ -48,8 +47,8 @@ class OrderItem(Base):
 
 class Expense(Base):
     __tablename__ = "expenses"
-    expense_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    restaurant_id = Column(UUID(as_uuid=True), nullable=False)
+    expense_id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    restaurant_id = Column(String(36), nullable=False)
     category = Column(String(100), nullable=False)
     amount = Column(Numeric(10,2), nullable=False)
     description = Column(Text)
@@ -57,10 +56,10 @@ class Expense(Base):
 
 class Dispute(Base):
     __tablename__ = "disputes"
-    dispute_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    order_id = Column(UUID(as_uuid=True), nullable=False)
-    customer_id = Column(UUID(as_uuid=True), nullable=False)
-    vendor_id = Column(UUID(as_uuid=True), nullable=False)
+    dispute_id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    order_id = Column(String(36), nullable=False)
+    customer_id = Column(String(36), nullable=False)
+    vendor_id = Column(String(36), nullable=False)
     reason = Column(String(255), nullable=False)
     description = Column(Text)
     status = Column(String(20), default="OPEN") # OPEN, RESOLVED, CANCELLED

@@ -5,7 +5,6 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List, Optional, Dict
 from datetime import datetime, timedelta
-from uuid import UUID
 import json
 import shutil
 import os
@@ -36,7 +35,7 @@ app.add_middleware(
 
 @app.post("/api/v1/upload")
 async def upload_file(file: UploadFile = File(...), auth_data: dict = Depends(verify_token)):
-    file_path = os.path.join(UPLOAD_DIR, f"{UUID(auth_data['user_id'])}_{file.filename}")
+    file_path = os.path.join(UPLOAD_DIR, f"{auth_data['user_id']}_{file.filename}")
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
@@ -85,7 +84,7 @@ def create_restaurant(restaurant: schemas.RestaurantCreate, auth_data: dict = De
 
     # If not admin, force owner_id to be the current user
     if auth_data["role"] != "admin":
-        res_data["owner_id"] = UUID(auth_data["user_id"])
+        res_data["owner_id"] = auth_data["user_id"]
 
         # Check if user already has a restaurant
         existing = db.query(models.Restaurant).filter(models.Restaurant.owner_id == res_data["owner_id"]).first()
@@ -99,12 +98,12 @@ def create_restaurant(restaurant: schemas.RestaurantCreate, auth_data: dict = De
     return db_restaurant
 
 @app.put("/api/v1/restaurants/{id}", response_model=schemas.RestaurantOut)
-def update_restaurant(id: UUID, rest_update: schemas.RestaurantUpdate, auth_data: dict = Depends(verify_token), db: Session = Depends(database.get_db)):
+def update_restaurant(id: str, rest_update: schemas.RestaurantUpdate, auth_data: dict = Depends(verify_token), db: Session = Depends(database.get_db)):
     db_rest = db.query(models.Restaurant).filter(models.Restaurant.restaurant_id == id).first()
     if not db_rest:
         raise HTTPException(status_code=404, detail="Restaurant not found")
 
-    if db_rest.owner_id != UUID(auth_data["user_id"]) and auth_data["role"] != "admin":
+    if db_rest.owner_id != auth_data["user_id"] and auth_data["role"] != "admin":
         raise HTTPException(status_code=403, detail="Forbidden")
 
     for key, value in rest_update.dict(exclude_unset=True).items():
@@ -117,7 +116,7 @@ def update_restaurant(id: UUID, rest_update: schemas.RestaurantUpdate, auth_data
     import asyncio
     asyncio.create_task(manager.broadcast({
         "type": "RESTAURANT_UPDATED",
-        "restaurant_id": str(id),
+        "restaurant_id": id,
         "is_open": db_rest.is_open,
         "is_online": db_rest.is_online,
         "name": db_rest.name
@@ -140,26 +139,26 @@ def search_menu_items(q: str, db: Session = Depends(database.get_db)):
 
 @app.get("/api/v1/restaurants/mine", response_model=schemas.RestaurantOut)
 def get_my_restaurant(auth_data: dict = Depends(verify_token), db: Session = Depends(database.get_db)):
-    restaurant = db.query(models.Restaurant).filter(models.Restaurant.owner_id == UUID(auth_data["user_id"])).first()
+    restaurant = db.query(models.Restaurant).filter(models.Restaurant.owner_id == auth_data["user_id"]).first()
     if not restaurant:
         raise HTTPException(status_code=404, detail="Restaurant not found for this user")
     return restaurant
 
 @app.get("/api/v1/restaurants/{id}", response_model=schemas.RestaurantOut)
-def get_restaurant(id: UUID, db: Session = Depends(database.get_db)):
+def get_restaurant(id: str, db: Session = Depends(database.get_db)):
     restaurant = db.query(models.Restaurant).filter(models.Restaurant.restaurant_id == id).first()
     if not restaurant:
         raise HTTPException(status_code=404, detail="Restaurant not found")
     return restaurant
 
 @app.get("/api/v1/restaurants/{id}/menu", response_model=List[schemas.MenuItemOut])
-def get_restaurant_menu(id: UUID, db: Session = Depends(database.get_db)):
+def get_restaurant_menu(id: str, db: Session = Depends(database.get_db)):
     return db.query(models.MenuItem).filter(models.MenuItem.restaurant_id == id).all()
 
 @app.post("/api/v1/restaurants/{id}/menu", response_model=schemas.MenuItemOut)
-def create_menu_item(id: UUID, item: schemas.MenuItemCreate, auth_data: dict = Depends(verify_token), db: Session = Depends(database.get_db)):
+def create_menu_item(id: str, item: schemas.MenuItemCreate, auth_data: dict = Depends(verify_token), db: Session = Depends(database.get_db)):
     # Verify ownership
-    restaurant = db.query(models.Restaurant).filter(models.Restaurant.restaurant_id == id, models.Restaurant.owner_id == UUID(auth_data["user_id"])).first()
+    restaurant = db.query(models.Restaurant).filter(models.Restaurant.restaurant_id == id, models.Restaurant.owner_id == auth_data["user_id"]).first()
     if not restaurant and auth_data["role"] != "admin":
         raise HTTPException(status_code=403, detail="You do not own this restaurant")
 
@@ -175,7 +174,7 @@ import os
 ORDER_SERVICE_URL = os.getenv("ORDER_SERVICE_URL", "http://order-service:8000")
 
 @app.post("/api/v1/reviews/orders/{order_id}/review", response_model=schemas.ReviewOut)
-async def create_review(order_id: UUID, review: schemas.ReviewCreate, db: Session = Depends(database.get_db)):
+async def create_review(order_id: str, review: schemas.ReviewCreate, db: Session = Depends(database.get_db)):
     # Fetch restaurant_id from order-service
     async with httpx.AsyncClient() as client:
         try:
@@ -201,7 +200,7 @@ async def create_review(order_id: UUID, review: schemas.ReviewCreate, db: Sessio
     return db_review
 
 @app.get("/api/v1/reviews/restaurants/{id}/reviews", response_model=List[schemas.ReviewOut])
-def get_restaurant_reviews(id: UUID, db: Session = Depends(database.get_db)):
+def get_restaurant_reviews(id: str, db: Session = Depends(database.get_db)):
     return db.query(models.Review).filter(models.Review.restaurant_id == id).all()
 
 @app.get("/api/v1/admin/restaurants", response_model=List[schemas.RestaurantOut])
@@ -227,7 +226,7 @@ def admin_create_restaurant(restaurant: schemas.RestaurantCreate, auth_data: dic
     return db_restaurant
 
 @app.patch("/api/v1/admin/restaurants/{id}/status", response_model=schemas.RestaurantOut)
-def update_restaurant_status(id: UUID, status_update: dict, auth_data: dict = Depends(verify_token), db: Session = Depends(database.get_db)):
+def update_restaurant_status(id: str, status_update: dict, auth_data: dict = Depends(verify_token), db: Session = Depends(database.get_db)):
     if auth_data["role"] != "admin":
         raise HTTPException(status_code=403, detail="Not enough permissions")
 
@@ -245,7 +244,7 @@ def update_restaurant_status(id: UUID, status_update: dict, auth_data: dict = De
     import asyncio
     asyncio.create_task(manager.broadcast({
         "type": "RESTAURANT_STATUS_CHANGED",
-        "restaurant_id": str(id),
+        "restaurant_id": id,
         "is_open": db_restaurant.is_open,
         "is_online": db_restaurant.is_online
     }))
@@ -253,7 +252,7 @@ def update_restaurant_status(id: UUID, status_update: dict, auth_data: dict = De
     return db_restaurant
 
 @app.delete("/api/v1/admin/restaurants/{id}")
-def delete_restaurant(id: UUID, auth_data: dict = Depends(verify_token), db: Session = Depends(database.get_db)):
+def delete_restaurant(id: str, auth_data: dict = Depends(verify_token), db: Session = Depends(database.get_db)):
     if auth_data["role"] != "admin":
         raise HTTPException(status_code=403, detail="Not enough permissions")
     db_rest = db.query(models.Restaurant).filter(models.Restaurant.restaurant_id == id).first()
@@ -264,13 +263,13 @@ def delete_restaurant(id: UUID, auth_data: dict = Depends(verify_token), db: Ses
     return {"status": "success"}
 
 @app.put("/api/v1/menu-items/{id}", response_model=schemas.MenuItemOut)
-def update_menu_item(id: UUID, item_update: schemas.MenuItemCreate, auth_data: dict = Depends(verify_token), db: Session = Depends(database.get_db)):
+def update_menu_item(id: str, item_update: schemas.MenuItemCreate, auth_data: dict = Depends(verify_token), db: Session = Depends(database.get_db)):
     db_item = db.query(models.MenuItem).filter(models.MenuItem.item_id == id).first()
     if not db_item:
         raise HTTPException(status_code=404, detail="Menu item not found")
 
     # Verify ownership
-    restaurant = db.query(models.Restaurant).filter(models.Restaurant.restaurant_id == db_item.restaurant_id, models.Restaurant.owner_id == UUID(auth_data["user_id"])).first()
+    restaurant = db.query(models.Restaurant).filter(models.Restaurant.restaurant_id == db_item.restaurant_id, models.Restaurant.owner_id == auth_data["user_id"]).first()
     if not restaurant and auth_data["role"] != "admin":
         raise HTTPException(status_code=403, detail="Forbidden")
 
@@ -282,7 +281,7 @@ def update_menu_item(id: UUID, item_update: schemas.MenuItemCreate, auth_data: d
     return db_item
 
 @app.delete("/api/v1/menu-items/{id}")
-def delete_menu_item(id: UUID, auth_data: dict = Depends(verify_token), db: Session = Depends(database.get_db)):
+def delete_menu_item(id: str, auth_data: dict = Depends(verify_token), db: Session = Depends(database.get_db)):
     db_item = db.query(models.MenuItem).filter(models.MenuItem.item_id == id).first()
     if not db_item:
         raise HTTPException(status_code=404, detail="Menu item not found")
@@ -292,7 +291,7 @@ def delete_menu_item(id: UUID, auth_data: dict = Depends(verify_token), db: Sess
     return {"status": "success"}
 
 @app.put("/api/v1/suppliers/{id}", response_model=schemas.SupplierOut)
-def update_supplier(id: UUID, supplier_update: schemas.SupplierCreate, auth_data: dict = Depends(verify_token), db: Session = Depends(database.get_db)):
+def update_supplier(id: str, supplier_update: schemas.SupplierCreate, auth_data: dict = Depends(verify_token), db: Session = Depends(database.get_db)):
     db_supplier = db.query(models.Supplier).filter(models.Supplier.supplier_id == id).first()
     if not db_supplier:
         raise HTTPException(status_code=404, detail="Supplier not found")
@@ -305,7 +304,7 @@ def update_supplier(id: UUID, supplier_update: schemas.SupplierCreate, auth_data
     return db_supplier
 
 @app.delete("/api/v1/suppliers/{id}")
-def delete_supplier(id: UUID, auth_data: dict = Depends(verify_token), db: Session = Depends(database.get_db)):
+def delete_supplier(id: str, auth_data: dict = Depends(verify_token), db: Session = Depends(database.get_db)):
     db_supplier = db.query(models.Supplier).filter(models.Supplier.supplier_id == id).first()
     if not db_supplier:
         raise HTTPException(status_code=404, detail="Supplier not found")
@@ -358,7 +357,7 @@ def create_import(imp: schemas.StockImportCreate, auth_data: dict = Depends(veri
     return db_import
 
 @app.post("/api/v1/menu-items/{id}/reduce-stock")
-def reduce_stock(id: UUID, quantity: int, db: Session = Depends(database.get_db)):
+def reduce_stock(id: str, quantity: int, db: Session = Depends(database.get_db)):
     item = db.query(models.MenuItem).filter(models.MenuItem.item_id == id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Menu item not found")
@@ -385,7 +384,7 @@ def get_admin_summary(db: Session = Depends(database.get_db)):
     }
 
 @app.get("/api/v1/restaurants/{id}/inventory-stats")
-def get_inventory_stats(id: UUID, db: Session = Depends(database.get_db)):
+def get_inventory_stats(id: str, db: Session = Depends(database.get_db)):
     items = db.query(models.MenuItem).filter(models.MenuItem.restaurant_id == id).all()
 
     total_products = len(items)
@@ -410,11 +409,11 @@ def get_inventory_stats(id: UUID, db: Session = Depends(database.get_db)):
 # --- SUBSCRIPTIONS ---
 
 @app.get("/api/v1/restaurants/{id}/subscriptions", response_model=List[schemas.SubscriptionOut])
-def get_restaurant_subscriptions(id: UUID, db: Session = Depends(database.get_db)):
+def get_restaurant_subscriptions(id: str, db: Session = Depends(database.get_db)):
     return db.query(models.Subscription).filter(models.Subscription.restaurant_id == id).order_by(models.Subscription.start_date.desc()).all()
 
 @app.get("/api/v1/restaurants/{id}/subscription/active", response_model=Optional[schemas.SubscriptionOut])
-def get_active_subscription(id: UUID, db: Session = Depends(database.get_db)):
+def get_active_subscription(id: str, db: Session = Depends(database.get_db)):
     return db.query(models.Subscription).filter(
         models.Subscription.restaurant_id == id,
         models.Subscription.status == 'ACTIVE',
@@ -422,9 +421,9 @@ def get_active_subscription(id: UUID, db: Session = Depends(database.get_db)):
     ).first()
 
 @app.post("/api/v1/restaurants/{id}/subscribe", response_model=schemas.SubscriptionOut)
-def subscribe_restaurant(id: UUID, plan: dict, auth_data: dict = Depends(verify_token), db: Session = Depends(database.get_db)):
+def subscribe_restaurant(id: str, plan: dict, auth_data: dict = Depends(verify_token), db: Session = Depends(database.get_db)):
     # Verify ownership
-    restaurant = db.query(models.Restaurant).filter(models.Restaurant.restaurant_id == id, models.Restaurant.owner_id == UUID(auth_data["user_id"])).first()
+    restaurant = db.query(models.Restaurant).filter(models.Restaurant.restaurant_id == id, models.Restaurant.owner_id == auth_data["user_id"]).first()
     if not restaurant and auth_data["role"] != "admin":
         raise HTTPException(status_code=403, detail="Forbidden")
 
@@ -453,13 +452,13 @@ def subscribe_restaurant(id: UUID, plan: dict, auth_data: dict = Depends(verify_
 # --- RESTAURANT RIDERS ---
 
 @app.get("/api/v1/restaurants/{id}/riders", response_model=List[schemas.RestaurantRiderOut])
-def get_restaurant_riders(id: UUID, db: Session = Depends(database.get_db)):
+def get_restaurant_riders(id: str, db: Session = Depends(database.get_db)):
     return db.query(models.RestaurantRider).filter(models.RestaurantRider.restaurant_id == id).all()
 
 @app.post("/api/v1/restaurants/{id}/riders", response_model=schemas.RestaurantRiderOut)
-def add_restaurant_rider(id: UUID, rider: schemas.RestaurantRiderBase, auth_data: dict = Depends(verify_token), db: Session = Depends(database.get_db)):
+def add_restaurant_rider(id: str, rider: schemas.RestaurantRiderBase, auth_data: dict = Depends(verify_token), db: Session = Depends(database.get_db)):
     # Verify ownership
-    restaurant = db.query(models.Restaurant).filter(models.Restaurant.restaurant_id == id, models.Restaurant.owner_id == UUID(auth_data["user_id"])).first()
+    restaurant = db.query(models.Restaurant).filter(models.Restaurant.restaurant_id == id, models.Restaurant.owner_id == auth_data["user_id"]).first()
     if not restaurant and auth_data["role"] != "admin":
         raise HTTPException(status_code=403, detail="Forbidden")
 
@@ -474,7 +473,7 @@ def add_restaurant_rider(id: UUID, rider: schemas.RestaurantRiderBase, auth_data
     return db_rider
 
 @app.patch("/api/v1/restaurants/{id}/riders/{rider_id}/status")
-def update_restaurant_rider_status(id: UUID, rider_id: UUID, status_update: dict, auth_data: dict = Depends(verify_token), db: Session = Depends(database.get_db)):
+def update_restaurant_rider_status(id: str, rider_id: str, status_update: dict, auth_data: dict = Depends(verify_token), db: Session = Depends(database.get_db)):
     db_rider = db.query(models.RestaurantRider).filter(models.RestaurantRider.restaurant_id == id, models.RestaurantRider.rider_id == rider_id).first()
     if not db_rider:
         raise HTTPException(status_code=404, detail="Rider not found for this restaurant")
@@ -513,7 +512,7 @@ def get_categories(db: Session = Depends(database.get_db)):
 # --- PROMOTION ENDPOINTS ---
 
 @app.get("/api/v1/public/promotions", response_model=List[schemas.PromotionOut])
-def get_promotions(restaurant_id: Optional[UUID] = None, db: Session = Depends(database.get_db)):
+def get_promotions(restaurant_id: Optional[str] = None, db: Session = Depends(database.get_db)):
     query = db.query(models.Promotion).filter(models.Promotion.is_active == True)
     if restaurant_id:
         query = query.filter(models.Promotion.restaurant_id == restaurant_id)
@@ -530,4 +529,3 @@ def create_promotion(promo: schemas.PromotionCreate, auth_data: dict = Depends(v
     db.commit()
     db.refresh(db_promo)
     return db_promo
-

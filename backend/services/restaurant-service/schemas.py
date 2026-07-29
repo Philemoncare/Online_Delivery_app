@@ -1,7 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
-from uuid import UUID
 from decimal import Decimal
 
 class MenuItemBase(BaseModel):
@@ -19,8 +18,8 @@ class MenuItemCreate(MenuItemBase):
     pass
 
 class MenuItemOut(MenuItemBase):
-    item_id: UUID
-    restaurant_id: UUID
+    item_id: str
+    restaurant_id: str
 
     class Config:
         from_attributes = True
@@ -36,15 +35,15 @@ class SupplierCreate(SupplierBase):
     pass
 
 class SupplierOut(SupplierBase):
-    supplier_id: UUID
+    supplier_id: str
     created_at: datetime
 
     class Config:
         from_attributes = True
 
 class StockImportBase(BaseModel):
-    supplier_id: UUID
-    item_id: UUID
+    supplier_id: str
+    item_id: str
     quantity: int
     cost_at_import: Decimal
 
@@ -52,7 +51,7 @@ class StockImportCreate(StockImportBase):
     pass
 
 class StockImportOut(StockImportBase):
-    import_id: UUID
+    import_id: str
     import_date: datetime
 
     class Config:
@@ -73,7 +72,7 @@ class RestaurantBase(BaseModel):
     delivery_radius: Optional[Decimal] = None
 
 class RestaurantCreate(RestaurantBase):
-    owner_id: UUID
+    owner_id: Optional[str] = None
 
 class RestaurantUpdate(BaseModel):
     name: Optional[str] = None
@@ -90,7 +89,7 @@ class RestaurantUpdate(BaseModel):
     delivery_radius: Optional[Decimal] = None
 
 class RestaurantOut(RestaurantBase):
-    restaurant_id: UUID
+    restaurant_id: str
     rating_avg: Decimal
 
     class Config:
@@ -101,12 +100,12 @@ class ReviewBase(BaseModel):
     comment: Optional[str] = None
 
 class ReviewCreate(ReviewBase):
-    order_id: UUID
+    order_id: str
 
 class ReviewOut(ReviewBase):
-    review_id: UUID
-    order_id: UUID
-    restaurant_id: UUID
+    review_id: str
+    order_id: str
+    restaurant_id: str
     created_at: datetime
 
     class Config:
@@ -119,20 +118,20 @@ class SubscriptionBase(BaseModel):
     end_date: datetime
 
 class SubscriptionOut(SubscriptionBase):
-    subscription_id: UUID
-    restaurant_id: UUID
+    subscription_id: str
+    restaurant_id: str
     start_date: datetime
 
     class Config:
         from_attributes = True
 
 class RestaurantRiderBase(BaseModel):
-    rider_id: UUID
+    rider_id: str
     status: str = "ACTIVE"
 
 class RestaurantRiderOut(RestaurantRiderBase):
-    id: UUID
-    restaurant_id: UUID
+    id: str
+    restaurant_id: str
     joined_at: datetime
 
     class Config:
@@ -147,7 +146,7 @@ class InquiryCreate(InquiryBase):
     pass
 
 class InquiryOut(InquiryBase):
-    inquiry_id: UUID
+    inquiry_id: str
     created_at: datetime
 
     class Config:
@@ -161,13 +160,13 @@ class PromotionBase(BaseModel):
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     is_active: bool = True
-    restaurant_id: Optional[UUID] = None
+    restaurant_id: Optional[str] = None
 
 class PromotionCreate(PromotionBase):
     pass
 
 class PromotionOut(PromotionBase):
-    promo_id: UUID
+    promo_id: str
 
     class Config:
         from_attributes = True
@@ -183,8 +182,7 @@ class CouponCreate(CouponBase):
     pass
 
 class CouponOut(CouponBase):
-    coupon_id: UUID
+    coupon_id: str
 
     class Config:
         from_attributes = True
-

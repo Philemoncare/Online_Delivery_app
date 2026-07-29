@@ -327,11 +327,11 @@ export default function App() {
     if (!token || !restId) return;
     try {
       const [oRes, mRes, sRes, rRes, subRes] = await Promise.all([
-        orderApi.getOrders(restId),
-        restaurantApi.getMenu(restId),
-        orderApi.getStats(restId),
-        restaurantApi.getRiders(restId),
-        restaurantApi.getActiveSubscription(restId)
+        orderApi.getOrders(restId).catch(() => ({ data: [] })),
+        restaurantApi.getMenu(restId).catch(() => ({ data: [] })),
+        orderApi.getStats(restId).catch(() => ({ data: {} })),
+        restaurantApi.getRiders(restId).catch(() => ({ data: [] })),
+        restaurantApi.getActiveSubscription(restId).catch(() => ({ data: null }))
       ]);
       setOrders(oRes.data);
       setMenu(mRes.data);
@@ -392,15 +392,21 @@ export default function App() {
         name: formData.get('name'),
         cuisine_type: formData.get('cuisine'),
         address: formData.get('address'),
-        geo_lat: 5.60, geo_lng: -0.18,
-        image_url: 'https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&q=80&w=1000'
+        geo_lat: 5.6037, // Default Accra Lat
+        geo_lng: -0.1870, // Default Accra Lng
+        image_url: 'https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&q=80&w=1000',
+        is_open: true,
+        is_online: true,
+        delivery_radius: 5.0
     };
     try {
         const res = await restaurantApi.createRestaurant(data);
         setRestaurant(res.data);
         setActiveTab('orders');
+        fetchData(res.data.restaurant_id);
     } catch (err) {
-        alert("Failed to create restaurant profile");
+        console.error("Restaurant creation failed:", err);
+        alert("Failed to create restaurant profile: " + (err.response?.data?.detail || "Unknown error"));
     } finally {
         setLoading(false);
     }
@@ -432,7 +438,7 @@ export default function App() {
     <>
       {isPending && <ReviewModal onLogout={logout} />}
       <Layout activeTab={activeTab} onTabChange={setActiveTab} restaurant={restaurant} user={user} onLogout={logout}>
-        {activeTab === 'create-restaurant' && (
+        {!restaurant ? (
             <div style={{ maxWidth: '600px', margin: '40px auto' }}>
                 <Card title="Establish Your Kitchen Profile">
                     <p style={{ color: theme.textMuted, marginBottom: '24px' }}>Welcome operative. To begin receiving orders, we need to register your restaurant in the fDA network.</p>
@@ -440,21 +446,24 @@ export default function App() {
                         <Input name="name" label="Restaurant Name" placeholder="The Golden Skillet" required />
                         <Input name="cuisine" label="Cuisine Speciality" placeholder="Ghanaian, Continental, etc." required />
                         <Input name="address" label="Physical Address" placeholder="123 High Street, Accra" required />
-                        <Button label="Initialize Restaurant Profile" type="submit" style={{ width: '100%', marginTop: '20px' }} />
+                        <Button label={loading ? "Initializing..." : "Initialize Restaurant Profile"} type="submit" style={{ width: '100%', marginTop: '20px' }} disabled={loading} />
                     </form>
                 </Card>
             </div>
+        ) : (
+            <>
+                {activeTab === 'orders' && <LiveKitchen orders={orders} menu={menu} onRefresh={() => fetchData(restaurant?.restaurant_id)} />}
+                {activeTab === 'menu' && <MenuCatalog menu={menu} restaurantId={restaurant?.restaurant_id} onRefresh={() => fetchData(restaurant?.restaurant_id)} />}
+                {activeTab === 'riders' && <Riders riders={riders} restaurantId={restaurant?.restaurant_id} onRefresh={() => fetchData(restaurant?.restaurant_id)} />}
+                {activeTab === 'subscription' && <Subscription activeSubscription={activeSubscription} restaurantId={restaurant?.restaurant_id} onRefresh={() => fetchData(restaurant?.restaurant_id)} />}
+                {activeTab === 'reports' && <SalesReports orders={orders} stats={stats} menu={menu} />}
+                {activeTab === 'settings' && <Settings restaurant={restaurant} user={user} onUpdate={() => {
+                    restaurantApi.getMine().then(r => setRestaurant(r.data));
+                    authApi.getMe().then(r => setUser(r.data));
+                }} />}
+            </>
         )}
-        {activeTab === 'orders' && <LiveKitchen orders={orders} menu={menu} onRefresh={() => fetchData(restaurant?.restaurant_id)} />}
-        {activeTab === 'menu' && <MenuCatalog menu={menu} restaurantId={restaurant?.restaurant_id} onRefresh={() => fetchData(restaurant?.restaurant_id)} />}
-        {activeTab === 'riders' && <Riders riders={riders} restaurantId={restaurant?.restaurant_id} onRefresh={() => fetchData(restaurant?.restaurant_id)} />}
-        {activeTab === 'subscription' && <Subscription activeSubscription={activeSubscription} restaurantId={restaurant?.restaurant_id} onRefresh={() => fetchData(restaurant?.restaurant_id)} />}
-        {activeTab === 'reports' && <SalesReports orders={orders} stats={stats} menu={menu} />}
-        {activeTab === 'settings' && <Settings restaurant={restaurant} user={user} onUpdate={() => {
-            restaurantApi.getMine().then(r => setRestaurant(r.data));
-            authApi.getMe().then(r => setUser(r.data));
-        }} />}
-    </Layout>
+      </Layout>
     </>
   );
 }

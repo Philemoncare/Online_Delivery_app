@@ -160,21 +160,25 @@ const Layout = ({ children, activeTab, onTabChange, restaurant, user, onLogout }
                 <header className="desktop-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '48px' }}>
                     <div>
                         <h1 style={{ margin: 0, fontSize: '36px', fontWeight: '900', letterSpacing: '-1.5px' }}>{restaurant?.name || 'My Kitchen'}</h1>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginTop: '12px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: restaurant?.is_online ? theme.success : theme.danger, boxShadow: `0 0 10px ${restaurant?.is_online ? theme.success : theme.danger}` }} />
-                                <span style={{ fontWeight: '800', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px', color: restaurant?.is_online ? theme.success : theme.danger }}>
-                                    {restaurant?.is_online ? 'Platform Visible' : 'Platform Hidden'}
-                                </span>
+                        {restaurant ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginTop: '12px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: restaurant.is_online ? theme.success : theme.danger, boxShadow: `0 0 10px ${restaurant.is_online ? theme.success : theme.danger}` }} />
+                                    <span style={{ fontWeight: '800', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px', color: restaurant.is_online ? theme.success : theme.danger }}>
+                                        {restaurant.is_online ? 'Platform Visible' : 'Platform Hidden'}
+                                    </span>
+                                </div>
+                                <div style={{ width: '1px', height: '12px', backgroundColor: 'rgba(255,255,255,0.1)' }} />
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: restaurant.is_open ? theme.success : theme.danger, boxShadow: `0 0 10px ${restaurant.is_open ? theme.success : theme.danger}` }} />
+                                    <span style={{ fontWeight: '800', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px', color: restaurant.is_open ? theme.success : theme.danger }}>
+                                        {restaurant.is_open ? 'Kitchen Open' : 'Kitchen Closed'}
+                                    </span>
+                                </div>
                             </div>
-                            <div style={{ width: '1px', height: '12px', backgroundColor: 'rgba(255,255,255,0.1)' }} />
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: restaurant?.is_open ? theme.success : theme.danger, boxShadow: `0 0 10px ${restaurant?.is_open ? theme.success : theme.danger}` }} />
-                                <span style={{ fontWeight: '800', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px', color: restaurant?.is_open ? theme.success : theme.danger }}>
-                                    {restaurant?.is_open ? 'Kitchen Open' : 'Kitchen Closed'}
-                                </span>
-                            </div>
-                        </div>
+                        ) : (
+                            <p style={{ color: theme.textMuted, marginTop: '8px', fontWeight: '600' }}>Platform account setup in progress.</p>
+                        )}
                     </div>
 
                     <div style={{

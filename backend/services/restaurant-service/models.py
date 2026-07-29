@@ -8,8 +8,8 @@ from database import Base
 class Restaurant(Base):
     __tablename__ = "restaurants"
 
-    restaurant_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    owner_id = Column(UUID(as_uuid=True), nullable=False) # References users in auth-service
+    restaurant_id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    owner_id = Column(String(36), nullable=False) # References users in auth-service
     name = Column(String(255), nullable=False)
     address = Column(Text, nullable=False)
     geo_lat = Column(Numeric(9,6), nullable=False)
@@ -32,8 +32,8 @@ class Restaurant(Base):
 
 class Subscription(Base):
     __tablename__ = "subscriptions"
-    subscription_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    restaurant_id = Column(UUID(as_uuid=True), ForeignKey("restaurants.restaurant_id", ondelete="CASCADE"), nullable=False)
+    subscription_id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    restaurant_id = Column(String(36), ForeignKey("restaurants.restaurant_id", ondelete="CASCADE"), nullable=False)
     plan_type = Column(String(20), nullable=False) # WEEKLY, MONTHLY, ANNUAL
     status = Column(String(20), default="ACTIVE")
     amount = Column(Numeric(10, 2), nullable=False)
@@ -44,9 +44,9 @@ class Subscription(Base):
 
 class RestaurantRider(Base):
     __tablename__ = "restaurant_riders"
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    restaurant_id = Column(UUID(as_uuid=True), ForeignKey("restaurants.restaurant_id"), nullable=False)
-    rider_id = Column(UUID(as_uuid=True), nullable=False)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    restaurant_id = Column(String(36), ForeignKey("restaurants.restaurant_id"), nullable=False)
+    rider_id = Column(String(36), nullable=False)
     status = Column(String(20), default="ACTIVE")
     joined_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -55,8 +55,8 @@ class RestaurantRider(Base):
 class MenuItem(Base):
     __tablename__ = "menu_items"
 
-    item_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    restaurant_id = Column(UUID(as_uuid=True), ForeignKey("restaurants.restaurant_id", ondelete="CASCADE"), nullable=False)
+    item_id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    restaurant_id = Column(String(36), ForeignKey("restaurants.restaurant_id", ondelete="CASCADE"), nullable=False)
     name = Column(String(255), nullable=False)
     price = Column(Numeric(10,2), nullable=False)
     cost_price = Column(Numeric(10,2), default=0.00)
@@ -95,9 +95,9 @@ class StockImport(Base):
 class Review(Base):
     __tablename__ = "reviews"
 
-    review_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    order_id = Column(UUID(as_uuid=True), nullable=False)
-    restaurant_id = Column(UUID(as_uuid=True), ForeignKey("restaurants.restaurant_id", ondelete="CASCADE"), nullable=False)
+    review_id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    order_id = Column(String(36), nullable=False)
+    restaurant_id = Column(String(36), ForeignKey("restaurants.restaurant_id", ondelete="CASCADE"), nullable=False)
     rating = Column(Integer, nullable=False)
     comment = Column(Text)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

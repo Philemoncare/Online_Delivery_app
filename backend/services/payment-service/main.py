@@ -1,7 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from uuid import UUID
 import uuid
 
 import httpx
@@ -23,15 +22,12 @@ ORDER_SERVICE_URL = get_service_url("ORDER_SERVICE_URL", "http://order-service:8
 
 @app.post("/api/v1/payments/initiate", response_model=schemas.PaymentOut)
 def initiate_payment(payment: schemas.PaymentInitiate, db: Session = Depends(database.get_db)):
-    # 5. Initiate MoMo push (Mocking external API call)
-    # response = mtn_api.request_payment(phone=payment.phone, amount=payment.amount)
-
     db_payment = models.Payment(
         order_id=payment.order_id,
         amount=payment.amount,
         provider=payment.provider,
         status=models.PaymentStatus.PENDING,
-        transaction_ref=str(uuid.uuid4()) # Placeholder ref
+        transaction_ref=str(uuid.uuid4())
     )
     db.add(db_payment)
     db.commit()
@@ -47,7 +43,6 @@ async def hubtel_callback(callback: schemas.PaymentCallback, db: Session = Depen
     return await process_callback(callback, db)
 
 async def process_callback(callback: schemas.PaymentCallback, db: Session = Depends(database.get_db)):
-    # 7. Payment callback (success)
     payment = db.query(models.Payment).filter(models.Payment.transaction_ref == callback.transaction_ref).first()
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
@@ -56,12 +51,13 @@ async def process_callback(callback: schemas.PaymentCallback, db: Session = Depe
         payment.status = models.PaymentStatus.SUCCESS
         payment.paid_at = func.now()
 
-        # 8. Confirm payment, update order status=PLACED
         async with httpx.AsyncClient() as client:
             try:
+                # Use internal key if needed or trust local port
                 await client.patch(
                     f"{ORDER_SERVICE_URL}/api/v1/orders/{payment.order_id}/status",
-                    json={"status": "PLACED"}
+                    json={"status": "PLACED"},
+                    headers={"X-Internal-Key": "fDA_INTERNAL_SECRET_2024"}
                 )
             except Exception as e:
                 print(f"Failed to update order status: {e}")
@@ -73,7 +69,7 @@ async def process_callback(callback: schemas.PaymentCallback, db: Session = Depe
 
 
 @app.get("/api/v1/payments/order/{order_id}", response_model=schemas.PaymentOut)
-def get_payment_by_order(order_id: UUID, db: Session = Depends(database.get_db)):
+def get_payment_by_order(order_id: str, db: Session = Depends(database.get_db)):
     payment = db.query(models.Payment).filter(models.Payment.order_id == order_id).first()
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
